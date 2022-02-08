@@ -1,0 +1,8 @@
+include *.rst
+include LICENSE
+recursive-include sharing_configs *.html
+recursive-include sharing_configs *.txt
+recursive-include sharing_configs *.po
+global-exclude __pycache__
+global-exclude *.py[co]
+
