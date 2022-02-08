@@ -1,5 +1,5 @@
 
-Welcome to sharing_configs's documentation!
+Sharing Configs for Django
 =================================================
 
 :Version: 0.1.0
@@ -12,10 +12,6 @@ Welcome to sharing_configs's documentation!
 |python-versions| |django-versions| |pypi-version|
 
 A reusable Django app to export and import resources from GitHub
-
-.. contents::
-
-.. section-numbering::
 
 Features
 ========
