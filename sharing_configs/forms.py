@@ -3,11 +3,11 @@ import json
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from .fields import GitHubFileField
 from .github import create_file, get_files_in_folder, get_user, update_file
-from .utils import download_json_schema, import_json_schema
+from .utils import download_file
 
 
 class GithubImportForm(forms.Form):
@@ -18,14 +18,14 @@ class GithubImportForm(forms.Form):
 
     def clean_file_path(self):
         url = self.cleaned_data["file_path"]
-        self.cleaned_data["json"] = download_json_schema(url)
+        self.cleaned_data["file"] = download_file(url)
 
     @transaction.atomic()
     def save(self):
-        form_json = self.cleaned_data.get("json")
-        name_plural = self.data.get("name_plural").title()
+        # FIXME refactor
+        form_file = self.cleaned_data.get("file")
 
-        return import_json_schema(json_schema=form_json, name_plural=name_plural)
+        return super().save()
 
 
 class ExportToGithubForm(forms.ModelForm):

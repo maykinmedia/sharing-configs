@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from solo.admin import SingletonModelAdmin
 
