@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
+    "django.contrib.messages",
     "django.contrib.admin",
     "solo",
     "sharing_configs",
@@ -48,3 +49,6 @@ TEMPLATES = [
 ]
 
 ROOT_URLCONF = "testapp.urls"
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+DEBUG = True
