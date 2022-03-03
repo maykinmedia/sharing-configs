@@ -6,4 +6,4 @@ class Command(BaseCommand):
     
     def handle(self, *args, **options):
         apps = utils.export_apps()
-        self.stdout.write(self.style.SUCCESS('Successfully listed apps:'))
+        self.stdout.write(self.style.SUCCESS('Successfully listed apps:',apps))
