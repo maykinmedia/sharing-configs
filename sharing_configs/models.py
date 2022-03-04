@@ -4,35 +4,32 @@ from django.utils.translation import gettext_lazy as _
 from solo.models import SingletonModel
 
 
-class GithubConfig(SingletonModel):
-    token = models.CharField(
-        _("token"),
+class SharingConfigsConfig(SingletonModel):
+    """
+    Config for sharing
+    """
+
+    api_endpoint = models.URLField(
+        _("api_endpoint"),
         max_length=250,
+        help_text=_("Path to API point"),
+    )
+    api_key = models.CharField(
+        _("api_key"),
+        max_length=128,
+        help_text=_("API key for authorization"),
+    )
+    label = models.CharField(
+        _("label"),
+        max_length=50,
+        help_text=_("Label"),
+    )
+    default_organisation = models.CharField(
+        _("default organisation"),
+        max_length=100,
         blank=True,
-        help_text=_(
-            "Access token for GitHub authorization. Required for exporting. "
-            "Can be generated at https://github.com/settings/tokens"
-        ),
-    )
-    repo = models.CharField(
-        _("repo"),
-        max_length=250,
-        help_text=_("GitHub repository in the format {owner}/{name}"),
-    )
-    folder = models.CharField(
-        _("folder"),
-        max_length=250,
-        blank=True,
-        help_text=_(
-            "Path to the folder in the repository for import/export. "
-            "If empty the root folder is used."
-        ),
-    )
-    only_json = models.BooleanField(
-        _("only JSON"),
-        default=True,
-        help_text=_("Show only .json files as import options"),
+        help_text=_("Default organisation"),
     )
 
     class Meta:
-        verbose_name = _("GitHub configuration")
+        verbose_name = _("Sharing configuration config")
