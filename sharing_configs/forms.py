@@ -5,13 +5,13 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-from .fields import GitHubFileField
+from .fields import FileField
 from .github import create_file, get_files_in_folder, get_user, update_file
 from .utils import download_file
 
 
-class GithubImportForm(forms.Form):
-    file_path = GitHubFileField(
+class ImportForm(forms.Form):
+    file_path = FileField(
         label=_("File"),
         widget=forms.RadioSelect,
     )
@@ -28,7 +28,7 @@ class GithubImportForm(forms.Form):
         return super().save()
 
 
-class ExportToGithubForm(forms.ModelForm):
+class ExportToForm(forms.ModelForm):
     file_name = forms.CharField(
         label=_("File name"),
         max_length=100,
@@ -41,13 +41,13 @@ class ExportToGithubForm(forms.ModelForm):
         initial=False,
         help_text=_("Overwrite the existing file in the GitHub folder"),
     )
-    github_folder_content = GitHubFileField(
+    folder_content = FileField(
         label=_("Folder content"),
         widget=forms.RadioSelect,
         disabled=True,
         required=False,
     )
-    github_user = forms.CharField(
+    user = forms.CharField(
         label=_("User"),
         disabled=True,
         required=False,
@@ -63,6 +63,8 @@ class ExportToGithubForm(forms.ModelForm):
         json_str = json.dumps(json_schema)
         file_name = self.cleaned_data["file_name"]
         update = self.cleaned_data["update"]
+        export_data = self.cleaned_data["export_func"]
+        export_data()
 
         if update:
             return update_file(file_name, json_str)

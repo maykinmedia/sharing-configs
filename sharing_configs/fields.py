@@ -18,7 +18,7 @@ def get_import_choices() -> List[Tuple[str, str]]:
     return choices
 
 
-class GitHubFileField(forms.ChoiceField):
+class FileField(forms.ChoiceField):
     def __init__(self, *args, **kwargs):
         kwargs["choices"] = get_import_choices
 
