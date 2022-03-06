@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from sharing_configs.admin import (
     SharingConfigsExportMixin as BaseSharingConfigsExportMixin,
 )
-from sharing_configs.forms import ExportToGithubForm
+from sharing_configs.forms import ExportToForm
 
 from .utils import export_apps
 
@@ -20,7 +20,7 @@ class SharingConfigsExportMixin(BaseSharingConfigsExportMixin):
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj.name}.json"}
         if request.method == "POST":
-            form = ExportToGithubForm(
+            form = ExportToForm(
                 request.POST,
                 instance=obj,
                 initial=initial,
@@ -38,7 +38,7 @@ class SharingConfigsExportMixin(BaseSharingConfigsExportMixin):
                 self.message_user(request, msg, level=messages.SUCCESS)
 
         else:
-            form = ExportToGithubForm(initial=initial, instance=obj)
+            form = ExportToForm(initial=initial, instance=obj)
 
         return render(
             request,
