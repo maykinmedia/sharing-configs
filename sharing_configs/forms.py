@@ -92,3 +92,7 @@ class ExportToGithubForm(forms.ModelForm):
                     "Check 'overwrite' if you want to update the existing file "
                 )
         return file_name
+
+    def __init__(self, *args, **kwargs):
+        self.export_func = kwargs.pop("export_func")
+        super().__init__(*args, **kwargs)

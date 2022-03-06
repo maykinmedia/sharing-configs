@@ -19,5 +19,6 @@ class SharingConfigsExportMixin:
     def get_sharing_configs_export_data(self, obj, **form_kwargs):
         raise NotImplemented
 
+
 class SharingConfigsExportMixin:
     pass
