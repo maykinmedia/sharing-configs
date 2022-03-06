@@ -7,11 +7,11 @@ from django.utils.translation import gettext_lazy as _
 from solo.admin import SingletonModelAdmin
 
 from .forms import ExportToGithubForm, GithubImportForm
-from .models import GithubConfig
+from .models import SharingConfigsConfig
 
 
-@admin.register(GithubConfig)
-class GithubConfigAdmin(SingletonModelAdmin):
+@admin.register(SharingConfigsConfig)
+class SharingConfigsConfigAdmin(SingletonModelAdmin):
     pass
 
 
