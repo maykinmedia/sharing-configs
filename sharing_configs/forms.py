@@ -28,7 +28,7 @@ class ImportForm(forms.Form):
         return super().save()
 
 
-class ExportToForm(forms.ModelForm):
+class ExportToForm(forms.Form):
     file_name = forms.CharField(
         label=_("File name"),
         max_length=100,
@@ -55,7 +55,7 @@ class ExportToForm(forms.ModelForm):
     )
 
     class Meta:
-        fields = ("file_name", "overwrite", "github_folder_content", "github_user")
+        fields = ("file_name", "overwrite", "folder_content", "user")
 
     def save(self, *args, **kwargs):
         # fixme refactor
@@ -63,8 +63,7 @@ class ExportToForm(forms.ModelForm):
         json_str = json.dumps(json_schema)
         file_name = self.cleaned_data["file_name"]
         update = self.cleaned_data["update"]
-        export_data = self.cleaned_data["export_func"]
-        export_data()
+        self.export_func()
 
         if update:
             return update_file(file_name, json_str)
