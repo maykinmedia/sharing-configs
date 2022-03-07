@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.admin import SingletonModelAdmin
 
-from .forms import ExportToGithubForm, GithubImportForm
+from .forms import ExportToForm, ImportForm
 from .models import GithubConfig
 
 
