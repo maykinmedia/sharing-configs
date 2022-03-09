@@ -7,15 +7,14 @@ from .utils import export_apps
 
 User = get_user_model()
 
+admin.site.unregister(User)
+
 
 class SharingConfigsExportAdmin(SharingConfigsExportMixin):
     def get_sharing_configs_export_data(self, obj, **form_kwargs):
         return export_apps()
 
 
-admin.unregister(User)
-
-
 @admin.register(User)
 class UserAdmin(SharingConfigsExportMixin, admin.ModelAdmin):
-    pass
+    change_list_template = "sharing_configs/export_to_github.html"
