@@ -11,20 +11,28 @@ from .utils import download_file
 
 
 class ImportForm(forms.Form):
-    file_path = FileField(
-        label=_("File"),
-        widget=forms.RadioSelect,
+    file_name = forms.CharField(
+        label=_("File name"),
+        max_length=100,
+        required=True,
+        help_text=_("Name of the file in storage folder"),
     )
 
-    def clean_file_path(self):
-        url = self.cleaned_data["file_path"]
+    folder = FileField(
+        label=_("Folder content"),
+        disabled=True,  # ?
+        required=False,
+    )
+
+    def clean_file_name(self):
+        url = self.cleaned_data["file_name"]
         self.cleaned_data["file"] = download_file(url)
 
     @transaction.atomic()
     def save(self):
         # FIXME refactor
-        form_file = self.cleaned_data.get("file")
-
+        form_file = self.cleaned_data.get("file_name")
+        # form_file = self.cleaned_data.get("file")
         return super().save()
 
 
@@ -33,49 +41,27 @@ class ExportToForm(forms.Form):
         label=_("File name"),
         max_length=100,
         required=True,
-        help_text=_("Name ot the file in Github folder"),
+        help_text=_("Name ot the file in storage folder"),
     )
     overwrite = forms.BooleanField(
         label=_("Overwrite"),
         required=False,
         initial=False,
-        help_text=_("Overwrite the existing file in the GitHub folder"),
+        help_text=_("Overwrite the existing file in the storage folder"),
     )
-    folder_content = FileField(
-        label=_("Folder content"),
-        widget=forms.RadioSelect,
-        disabled=True,
+    folder_content = forms.CharField(
+        label=_("Folder"),
+        disabled=True,  # ?
         required=False,
     )
     user = forms.CharField(
         label=_("User"),
-        disabled=True,
         required=False,
-        help_text=_("Github user. Can be configured in the Github Config page"),
+        help_text=_("User"),
     )
 
     class Meta:
         fields = ("file_name", "overwrite", "folder_content", "user")
-
-    def save(self, *args, **kwargs):
-        # fixme refactor
-        json_schema = self.instance.last_version.json_schema
-        json_str = json.dumps(json_schema)
-        file_name = self.cleaned_data["file_name"]
-        update = self.cleaned_data["update"]
-        self.export_func()
-
-        if update:
-            return update_file(file_name, json_str)
-
-        return create_file(file_name, json_str)
-
-    def get_initial_for_field(self, field, field_name):
-        if field_name == "github_user":
-            user = get_user()
-            return user.name
-
-        return super().get_initial_for_field(field, field_name)
 
     def clean_file_name(self):
         file_name = self.cleaned_data["file_name"]
@@ -93,7 +79,3 @@ class ExportToForm(forms.Form):
                     "Check 'overwrite' if you want to update the existing file "
                 )
         return file_name
-
-    def __init__(self, *args, **kwargs):
-        self.export_func = kwargs.pop("export_func")
-        super().__init__(*args, **kwargs)

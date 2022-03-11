@@ -16,27 +16,45 @@ class GithubConfigAdmin(SingletonModelAdmin):
 
 
 class SharingConfigsExportMixin:
-    def get_sharing_configs_export_data(self, obj, **form_kwargs):
+    """
+    provide methods to collect data in export form and make API call to upload files to storage
+    using credentials
+    """
+
+    export_template = "sharing_configs/admin/export.html"
+
+    def get_sharing_configs_export_data(self, obj, form):
+        """
+        provide payload for API by uploading file to storage
+        filename: string
+        obj(content): file object base64 encoded
+        author (optional): string
+        """
         raise NotImplemented
 
     def sharing_configs_export_view(self, request, object_id):
+        """
+        return template with pre-filled form for GET request;
+        process form data in POST request and make API call to endpoint in POST request
+        """
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj.name}.json"}
         if request.method == "POST":
-            form = ExportToForm(
-                request.POST,
-                instance=obj,
-                initial=initial,
-                export_func=self.get_sharing_configs_export_data,
-            )
+            form = ExportToForm(request.POST, instance=obj, initial=initial)
             if form.is_valid():
-                result = form.save()
+                result = form.save(commit=False)
+                result.author = request.user
+                file_content = self.get_sharing_configs_export_data(obj, form)
+                # collect data for request to API point
+                filename = form.cleaned_data.get("file_name")
+                folder_content = form.cleaned_data.get("folder_content")
+                #  api call try/except request.post(...data,...headers)
+
                 msg = format_html(
                     _(
                         "The object {object} has been exported successfully in the {result} result"
                     ),
                     object=obj,
-                    result=result.sha,
                 )
                 self.message_user(request, msg, level=messages.SUCCESS)
 
@@ -45,7 +63,7 @@ class SharingConfigsExportMixin:
 
         return render(
             request,
-            "admin/core/objecttype/export_to.html",
+            self.export_template,
             {"object": obj, "form": form},
         )
 
@@ -57,14 +75,32 @@ class SharingConfigsExportMixin:
             path(
                 "<path:object_id>/export-to/",
                 self.admin_site.admin_view(self.sharing_configs_export_view),
-                name="%s_%s_export_to" % info,
+                name="%s_%s_export" % info,
             ),
         ]
         return my_urls + urls
 
 
 class SharingConfigsImportMixin:
+    """provide methods to download files from storage using credentials"""
+
+    import_template = "sharing_configs/admin/import.html"
+
+    def get_sharing_configs_import_data(self, form):
+        """
+        provide data for API by downloading file from storage
+        filename: string
+        folder: string
+        label: string
+        """
+        raise NotImplemented
+
     def import_from_view(self, request):
+        """
+        return template with form and process data if form filled;
+        make API call to API point to download file
+
+        """
         if request.method == "POST":
             form = ImportForm(request.POST)
             if form.is_valid():
@@ -74,13 +110,12 @@ class SharingConfigsImportMixin:
                     object=object,
                 )
                 self.message_user(request, msg, level=messages.SUCCESS)
+                # TODO: adjust path to changelist
                 return redirect(reverse("admin:core_objecttype_changelist"))
         else:
             form = ImportForm()
 
-            return render(
-                request, "admin/core/objecttype/import_from.html", {"form": form}
-            )
+            return render(request, self.import_template, {"form": form})
 
     def get_urls(self):
         urls = super().get_urls()
@@ -88,7 +123,7 @@ class SharingConfigsImportMixin:
             path(
                 "import-from/",
                 self.admin_site.admin_view(self.import_from_view),
-                name="import_from",
+                name="import",
             ),
         ]
         return my_urls + urls
