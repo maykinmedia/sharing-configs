@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from .fields import FileField
-from .github import create_file, get_files_in_folder, get_user, update_file
+from .github import create_file, get_files_in_folder, update_file
 from .utils import download_file
 
 
@@ -20,7 +20,6 @@ class ImportForm(forms.Form):
 
     folder = FileField(
         label=_("Folder content"),
-        disabled=True,  # ?
         required=False,
     )
 
@@ -28,15 +27,9 @@ class ImportForm(forms.Form):
         url = self.cleaned_data["file_name"]
         self.cleaned_data["file"] = download_file(url)
 
-    @transaction.atomic()
-    def save(self):
-        # FIXME refactor
-        form_file = self.cleaned_data.get("file_name")
-        # form_file = self.cleaned_data.get("file")
-        return super().save()
-
 
 class ExportToForm(forms.Form):
+
     file_name = forms.CharField(
         label=_("File name"),
         max_length=100,
@@ -49,19 +42,13 @@ class ExportToForm(forms.Form):
         initial=False,
         help_text=_("Overwrite the existing file in the storage folder"),
     )
-    folder_content = forms.CharField(
+    folder_name = forms.CharField(
         label=_("Folder"),
-        disabled=True,  # ?
         required=False,
-    )
-    user = forms.CharField(
-        label=_("User"),
-        required=False,
-        help_text=_("User"),
     )
 
     class Meta:
-        fields = ("file_name", "overwrite", "folder_content", "user")
+        fields = ("file_name", "overwrite", "folder_name")
 
     def clean_file_name(self):
         file_name = self.cleaned_data["file_name"]

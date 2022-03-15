@@ -17,39 +17,36 @@ class GithubConfigAdmin(SingletonModelAdmin):
 
 class SharingConfigsExportMixin:
     """
-    provide methods to collect data in export form and make API call to upload files to storage
-    using credentials
+    A class that prepares data and privides interface to make API request using credentials;
+    The  get_sharing_configs_export_data() method raise NotImplementedError and should be
+    overriden in a derived class.
     """
 
-    export_template = "sharing_configs/admin/export.html"
+    change_form_template = "sharing_configs/admin/change_form.html"
+    change_form_export_template = "sharing_configs/admin/export.html"
 
-    def get_sharing_configs_export_data(self, obj, form):
+    def get_sharing_configs_export_data(self, obj: object) -> tuple[str, bytes]:
         """
-        provide payload for API by uploading file to storage
-        filename: string
-        obj(content): file object base64 encoded
-        author (optional): string
+        Derived class should provide object to export
         """
         raise NotImplemented
 
     def sharing_configs_export_view(self, request, object_id):
         """
-        return template with pre-filled form for GET request;
-        process form data in POST request and make API call to endpoint in POST request
+        return template with form for GET request;
+        process form data in POST request and make API call to endpoint
         """
         obj = self.get_object(request, object_id)
-        initial = {"file_name": f"{obj.name}.json"}
+        initial = {"file_name": f"{obj.username}.json"}
+        # initial = {"file_name": f"{obj.name}.json"} # user obj has NO attr name
         if request.method == "POST":
-            form = ExportToForm(request.POST, instance=obj, initial=initial)
+            form = ExportToForm(request.POST, initial=initial)
             if form.is_valid():
-                result = form.save(commit=False)
-                result.author = request.user
-                file_content = self.get_sharing_configs_export_data(obj, form)
-                # collect data for request to API point
-                filename = form.cleaned_data.get("file_name")
-                folder_content = form.cleaned_data.get("folder_content")
-                #  api call try/except request.post(...data,...headers)
-
+                author = request.user
+                obj_to_export = self.get_sharing_configs_export_data(obj)
+                file_name = form.cleaned_data.get("file_name")
+                folder_name = form.cleaned_data.get("folder_name")
+                #  api call try/except request.post(url,data,headers)
                 msg = format_html(
                     _(
                         "The object {object} has been exported successfully in the {result} result"
@@ -59,25 +56,29 @@ class SharingConfigsExportMixin:
                 self.message_user(request, msg, level=messages.SUCCESS)
 
         else:
-            form = ExportToForm(initial=initial, instance=obj)
+            form = ExportToForm(initial=initial)
 
         return render(
             request,
-            self.export_template,
+            # self.change_form_template,
+            self.change_form_export_template,
             {"object": obj, "form": form},
         )
 
     def get_urls(self):
         urls = super().get_urls()
-
-        info = self.model._meta.app_label, self.model._meta.model_name
+        info = (
+            self.model._meta.app_label,
+            self.model._meta.model_name,
+        )
         my_urls = [
             path(
-                "<path:object_id>/export-to/",
+                "<path:object_id>/export/",
                 self.admin_site.admin_view(self.sharing_configs_export_view),
                 name="%s_%s_export" % info,
             ),
         ]
+        # my_urls == [<URLPattern '<path:object_id>/export-to/' [name='auth_user_export']>]
         return my_urls + urls
 
 
@@ -86,32 +87,33 @@ class SharingConfigsImportMixin:
 
     import_template = "sharing_configs/admin/import.html"
 
-    def get_sharing_configs_import_data(self, form):
+    def get_sharing_configs_import_data(
+        self, filename: str, folder: str, author: str
+    ) -> object:
         """
-        provide data for API by downloading file from storage
-        filename: string
-        folder: string
-        label: string
+        Derived class should override params to import an object;
+        Also implement the way received object could be stored
+
         """
         raise NotImplemented
 
     def import_from_view(self, request):
         """
         return template with form and process data if form filled;
-        make API call to API point to download file
+        make API call to API point to download object
 
         """
         if request.method == "POST":
             form = ImportForm(request.POST)
             if form.is_valid():
                 object = form.save()
+                # TODO: call to API to fetch object using form data
                 msg = format_html(
                     _("The object {object} has been imported successfully!"),
                     object=object,
                 )
                 self.message_user(request, msg, level=messages.SUCCESS)
-                # TODO: adjust path to changelist
-                return redirect(reverse("admin:core_objecttype_changelist"))
+                return redirect(reverse("admin:import"))
         else:
             form = ImportForm()
 
@@ -126,4 +128,5 @@ class SharingConfigsImportMixin:
                 name="import",
             ),
         ]
+        # [<URLPattern 'import-from/' [name='import']>]
         return my_urls + urls

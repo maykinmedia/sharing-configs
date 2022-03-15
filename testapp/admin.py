@@ -12,5 +12,6 @@ admin.site.unregister(User)
 
 @admin.register(User)
 class UserAdmin(SharingConfigsExportMixin, admin.ModelAdmin):
-    def get_sharing_configs_export_data(self, obj, **form):
+    def get_sharing_configs_export_data(self, obj: object) -> str:
         return export_apps()
+        # current state: return -> list
