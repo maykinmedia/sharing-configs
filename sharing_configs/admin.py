@@ -25,7 +25,7 @@ class SharingConfigsExportMixin:
     change_form_template = "sharing_configs/admin/change_form.html"
     change_form_export_template = "sharing_configs/admin/export.html"
 
-    def get_sharing_configs_export_data(self, obj: object) -> tuple[str, bytes]:
+    def get_sharing_configs_export_data(self, obj: object) -> str:
         """
         Derived class should provide object to export
         """
