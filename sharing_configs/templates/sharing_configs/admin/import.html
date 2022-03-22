@@ -1,11 +1,8 @@
 {% extends 'admin/change_form.html' %}
 {% load i18n admin_urls static %}
-
-
-{% block content %}
-    <h1>{% trans 'Import from Community' %}</h1>
-    <div>
-        <form action="" method="POST" enctype="multipart/form-data">
+{% block content %}  
+    <h1>{% trans 'Import from Community' %}</h1>              
+        <form id="import-form" action="{% url 'admin:auth_user_import' %}" method="POST" enctype="multipart/form-data"> 
             {% csrf_token %}
             <fieldset class="module aligned">
                 {% for field in form %}
@@ -25,4 +22,13 @@
         </form>
     </div>
     <br/>
+    
 {% endblock %}
+
+{% block extrahead %}{{ block.super }}
+<script src="{% url 'admin:jsi18n' %}"></script>
+<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %} " type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'admin/js/jquery.init.js' %} " type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'sharing_configs/ajax_in_action.js' %}" type="text/javascript" defer></script>
+{% endblock %}
+

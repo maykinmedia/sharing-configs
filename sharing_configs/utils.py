@@ -1,6 +1,12 @@
+import json
+import os
+
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
 import requests
+
+# from .models import SharingConfigsConfig
 
 
 def download_file(url: str) -> bytes:
@@ -13,3 +19,56 @@ def download_file(url: str) -> bytes:
         raise ValidationError("The url returned non OK status.")
 
     return response.content
+
+
+def get_folders_from_api() -> dict:
+    """
+    mock  data (list of available folders via API call)
+    example: {"data":["folder_one","folder_two","folder_three"]}
+    """
+    try:
+        # TODO:here get API call to fetch list of folders for a given user
+        with open(os.path.join(settings.BASE_DIR, "mock_data", "folders.json")) as fh:
+            data = json.load(fh)
+            return data
+    except FileNotFoundError:
+        # return error msg from API point
+        return {}
+
+
+def get_imported_folders_choices() -> list:
+    """
+    create list of tuples (for folders) from based on  dict in  api response
+    """
+    api_list_folders = get_folders_from_api()
+    folders_choices = []
+    for folder in api_list_folders["data"]:
+        folders_choices.append((folder, folder))
+    return folders_choices
+
+
+def get_files_in_folder_from_api(folder) -> dict:
+    """
+    mock an API call (list of available files in a given folder )
+    example:  {"files_list":["file_one","file_two","file_three"]}
+    """
+    try:
+        with open(
+            os.path.join(settings.BASE_DIR, "mock_data", "files_in_folder.json")
+        ) as fh:
+            data = json.load(fh)
+            return data
+    except FileNotFoundError:
+        # return error msg from API
+        return {}
+
+
+def get_imported_files_choices(folder) -> list:
+    """
+    create list of files from parsing dict (api response)
+    """
+    api_list_files = get_files_in_folder_from_api(folder)
+    file_choices = []
+    for file in api_list_files["data"]:
+        file_choices.append((file))
+    return file_choices

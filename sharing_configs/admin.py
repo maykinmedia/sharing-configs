@@ -1,4 +1,8 @@
+import json
+from typing import Tuple
+
 from django.contrib import admin, messages
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -7,17 +11,19 @@ from django.utils.translation import gettext_lazy as _
 from solo.admin import SingletonModelAdmin
 
 from .forms import ExportToForm, ImportForm
-from .models import GithubConfig
+from .utils import get_imported_files_choices
+
+# from .models_original import GithubConfig
 
 
-@admin.register(GithubConfig)
-class GithubConfigAdmin(SingletonModelAdmin):
-    pass
+# @admin.register(GithubConfig)
+# class GithubConfigAdmin(SingletonModelAdmin):
+#     pass
 
 
 class SharingConfigsExportMixin:
     """
-    A class that prepares data and privides interface to make API request using credentials;
+    A class that prepares data and privides interface to make API call using credentials;
     The  get_sharing_configs_export_data() method raise NotImplementedError and should be
     overriden in a derived class.
     """
@@ -28,17 +34,18 @@ class SharingConfigsExportMixin:
     def get_sharing_configs_export_data(self, obj: object) -> str:
         """
         Derived class should provide object to export
+        current state: export a string(or object.attr that has a string representaion)
+        # future: API expects an object == File (content with base64 encoding)
         """
         raise NotImplemented
 
     def sharing_configs_export_view(self, request, object_id):
         """
         return template with form for GET request;
-        process form data in POST request and make API call to endpoint
+        process form data from POST request and make API call to endpoint
         """
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj.username}.json"}
-        # initial = {"file_name": f"{obj.name}.json"} # user obj has NO attr name
         if request.method == "POST":
             form = ExportToForm(request.POST, initial=initial)
             if form.is_valid():
@@ -57,12 +64,10 @@ class SharingConfigsExportMixin:
 
         else:
             form = ExportToForm(initial=initial)
-
         return render(
             request,
-            # self.change_form_template,
             self.change_form_export_template,
-            {"object": obj, "form": form},
+            {"object": obj, "form": form, "opts": obj._meta},
         )
 
     def get_urls(self):
@@ -78,13 +83,14 @@ class SharingConfigsExportMixin:
                 name="%s_%s_export" % info,
             ),
         ]
-        # my_urls == [<URLPattern '<path:object_id>/export-to/' [name='auth_user_export']>]
+
         return my_urls + urls
 
 
 class SharingConfigsImportMixin:
-    """provide methods to download files from storage using credentials"""
+    """provide methods to download files(object) from storage using credentials"""
 
+    change_list_template = "sharing_configs/admin/change_list.html"
     import_template = "sharing_configs/admin/import.html"
 
     def get_sharing_configs_import_data(
@@ -99,34 +105,77 @@ class SharingConfigsImportMixin:
 
     def import_from_view(self, request):
         """
-        return template with form and process data if form filled;
-        make API call to API point to download object
+        return template with form and process data if form is filled;
+        make API call to API point to download an object
 
         """
+        info = (
+            self.model._meta.app_label,
+            self.model._meta.model_name,
+        )
         if request.method == "POST":
+            api_response_list_files = []
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                # mock an api call to get a list of folders
+                data = json.load(request)["data"]
+                folder = data.get("folder")
+                # API call to fetch files for a given folder
+                api_response_list_files = get_imported_files_choices(folder)
+                return JsonResponse(
+                    {"resp": api_response_list_files, "status_code": 200}
+                )
+
             form = ImportForm(request.POST)
+            file_name = form.data.get("file_name")
+            form.fields["file_name"].choices = [(file_name, file_name)]
+
             if form.is_valid():
-                object = form.save()
+                data = {
+                    "folder": form.cleaned_data.get("folder"),
+                    "filename": form.cleaned_data.get("file_name"),
+                }
                 # TODO: call to API to fetch object using form data
+                # data to be send to API (needs label from settings)
                 msg = format_html(
                     _("The object {object} has been imported successfully!"),
                     object=object,
                 )
                 self.message_user(request, msg, level=messages.SUCCESS)
-                return redirect(reverse("admin:import"))
-        else:
-            form = ImportForm()
+                return redirect(reverse(f"admin:{info[0]}_{info[1]}_import"))
 
-            return render(request, self.import_template, {"form": form})
+            else:
+                # form is NOT valid
+                return render(
+                    request,
+                    self.import_template,
+                    {
+                        "form": form,
+                        "opts": self.model._meta,
+                    },
+                )
+        else:
+            # field folder is pre-filled with resp from API (does not exist yet)
+            # current source == json file with data
+            form = ImportForm()
+            return render(
+                request,
+                self.import_template,
+                {"form": form, "opts": self.model._meta},
+            )
 
     def get_urls(self):
         urls = super().get_urls()
+        info = (
+            self.model._meta.app_label,
+            self.model._meta.model_name,
+        )
+
         my_urls = [
             path(
-                "import-from/",
+                f"import/",
                 self.admin_site.admin_view(self.import_from_view),
-                name="import",
+                name="%s_%s_import" % info,
             ),
         ]
-        # [<URLPattern 'import-from/' [name='import']>]
+
         return my_urls + urls
