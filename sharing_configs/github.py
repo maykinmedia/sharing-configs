@@ -5,11 +5,11 @@ from django.conf import settings
 
 from github import Commit, ContentFile, Github, NamedUser
 
-from .models import GithubConfig
+from .models import SharingConfigsConfig
 
 
 def get_files_in_folder() -> List[ContentFile.ContentFile]:
-    config = GithubConfig.get_solo()
+    config = SharingConfigsConfig.get_solo()
     g = Github(config.token)
     repo = g.get_repo(config.repo)
 
@@ -25,7 +25,7 @@ def get_files_in_folder() -> List[ContentFile.ContentFile]:
 
 
 def get_last_commit_for_file(file_path: str) -> Commit.Commit:
-    config = GithubConfig.get_solo()
+    config = SharingConfigsConfig.get_solo()
     g = Github(config.token)
     repo = g.get_repo(config.repo)
 
@@ -34,7 +34,7 @@ def get_last_commit_for_file(file_path: str) -> Commit.Commit:
 
 
 def get_user() -> NamedUser:
-    config = GithubConfig.get_solo()
+    config = SharingConfigsConfig.get_solo()
     g = Github(config.token)
     return g.get_user()
 
@@ -45,7 +45,7 @@ def create_file(
     message=None,
 ) -> Commit.Commit:
 
-    config = GithubConfig.get_solo()
+    config = SharingConfigsConfig.get_solo()
     g = Github(config.token)
     repo = g.get_repo(config.repo)
 
@@ -60,7 +60,7 @@ def create_file(
 
 
 def update_file(file_name, file_content, message=None) -> Commit.Commit:
-    config = GithubConfig.get_solo()
+    config = SharingConfigsConfig.get_solo()
     g = Github(config.token)
     repo = g.get_repo(config.repo)
 
