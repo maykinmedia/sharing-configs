@@ -30,6 +30,12 @@ const AJAX_SELECT = document.getElementById('id_folder')
 let filesListMenu = document.getElementById("id_file_name")
 filesListMenu.innerHTML = '<option value="">files in folder</option>';
 
+let firstDivFormRow = document.getElementsByClassName("form-row")[0]
+let errorNote = document.createElement("div")
+errorNote.className = "input-error"
+errorNote.textContent="unable to find folders"
+firstDivFormRow.appendChild(errorNote)
+console.log("errorNote created")
 
 class TrackFolderMenu {
     /**
@@ -83,7 +89,9 @@ class TrackFolderMenu {
             
         }else{
             // errorMsg.innerHTML = "Unable to get folders"
-            throw new Error("Unable to get folders");
+            errorNote.textContent=`${data.status_code}`
+            // errorNote.textContent="smth went wrong"
+            // throw new Error("Unable to get folders");
         }         
     }
 }

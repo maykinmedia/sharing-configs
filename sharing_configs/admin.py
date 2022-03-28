@@ -1,7 +1,10 @@
 import json
+import os
 from typing import Tuple
 
+from django.conf import settings
 from django.contrib import admin, messages
+from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -12,9 +15,6 @@ from solo.admin import SingletonModelAdmin
 
 from .forms import ExportToForm, ImportForm
 from .utils import get_imported_files_choices
-
-# from .models_original import GithubConfig
-
 
 # @admin.register(GithubConfig)
 # class GithubConfigAdmin(SingletonModelAdmin):
@@ -30,12 +30,13 @@ class SharingConfigsExportMixin:
 
     change_form_template = "sharing_configs/admin/change_form.html"
     change_form_export_template = "sharing_configs/admin/export.html"
+    sharing_configs_export_form = None
 
-    def get_sharing_configs_export_data(self, obj: object) -> str:
+    def get_sharing_configs_export_data(self, obj: object) -> tuple[str, bytes]:
         """
         Derived class should provide object to export
         current state: export a string(or object.attr that has a string representaion)
-        # future: API expects an object == File (content with base64 encoding)
+        # future: API expects an object == File(bytes)
         """
         raise NotImplemented
 
@@ -47,7 +48,7 @@ class SharingConfigsExportMixin:
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj.username}.json"}
         if request.method == "POST":
-            form = ExportToForm(request.POST, initial=initial)
+            form = self.get_sharing_configs_export_form(request.POST, initial=initial)
             if form.is_valid():
                 author = request.user
                 obj_to_export = self.get_sharing_configs_export_data(obj)
@@ -55,15 +56,13 @@ class SharingConfigsExportMixin:
                 folder_name = form.cleaned_data.get("folder_name")
                 #  api call try/except request.post(url,data,headers)
                 msg = format_html(
-                    _(
-                        "The object {object} has been exported successfully in the {result} result"
-                    ),
+                    _("The object {object} has been exported successfully"),
                     object=obj,
                 )
                 self.message_user(request, msg, level=messages.SUCCESS)
 
         else:
-            form = ExportToForm(initial=initial)
+            form = self.sharing_configs_export_form(initial=initial)
         return render(
             request,
             self.change_form_export_template,
@@ -86,24 +85,31 @@ class SharingConfigsExportMixin:
 
         return my_urls + urls
 
+    def get_sharing_configs_export_form(self, *args, **kwargs):
+        """return object export form"""
+        if self.sharing_configs_export_form is not None:
+            form = self.sharing_configs_export_form(*args, **kwargs)
+            return form
+
 
 class SharingConfigsImportMixin:
     """provide methods to download files(object) from storage using credentials"""
 
     change_list_template = "sharing_configs/admin/change_list.html"
     import_template = "sharing_configs/admin/import.html"
+    sharing_configs_import_form = None
 
     def get_sharing_configs_import_data(
         self, filename: str, folder: str, author: str
     ) -> object:
         """
         Derived class should override params to import an object;
-        Also implement the way received object could be stored
+        Also need implementation to store a received object
 
         """
         raise NotImplemented
 
-    def import_from_view(self, request):
+    def import_from_view(self, request, **kwargs):
         """
         return template with form and process data if form is filled;
         make API call to API point to download an object
@@ -121,11 +127,14 @@ class SharingConfigsImportMixin:
                 folder = data.get("folder")
                 # API call to fetch files for a given folder
                 api_response_list_files = get_imported_files_choices(folder)
-                return JsonResponse(
-                    {"resp": api_response_list_files, "status_code": 200}
-                )
+                if api_response_list_files:
+                    return JsonResponse(
+                        {"resp": api_response_list_files, "status_code": 200}
+                    )
+                else:
+                    return JsonResponse({"status_code": 400})
 
-            form = ImportForm(request.POST)
+            form = self.get_sharing_configs_import_form(request.POST)
             file_name = form.data.get("file_name")
             form.fields["file_name"].choices = [(file_name, file_name)]
 
@@ -156,7 +165,7 @@ class SharingConfigsImportMixin:
         else:
             # field folder is pre-filled with resp from API (does not exist yet)
             # current source == json file with data
-            form = ImportForm()
+            form = self.get_sharing_configs_import_form()
             return render(
                 request,
                 self.import_template,
@@ -179,3 +188,9 @@ class SharingConfigsImportMixin:
         ]
 
         return my_urls + urls
+
+    def get_sharing_configs_import_form(self, *args, **kwargs):
+        """return object import form"""
+        if self.sharing_configs_import_form is not None:
+            form = self.sharing_configs_import_form(*args, **kwargs)
+            return form

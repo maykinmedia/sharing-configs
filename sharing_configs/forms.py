@@ -26,7 +26,7 @@ class ExportToForm(forms.Form):
         label=_("File name"),
         max_length=100,
         required=True,
-        help_text=_("Name ot the file in storage folder"),
+        help_text=_("Name of the file in storage folder"),
     )
     overwrite = forms.BooleanField(
         label=_("Overwrite"),
@@ -35,7 +35,7 @@ class ExportToForm(forms.Form):
         help_text=_("Overwrite the existing file in the storage folder"),
     )
     folder_name = forms.CharField(
-        label=_("Folder"),
+        label=_("Folder name"),
         required=False,
     )
 
