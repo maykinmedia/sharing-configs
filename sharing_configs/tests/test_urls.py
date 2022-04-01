@@ -2,16 +2,15 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import resolve, reverse
 
-from .factories import UserFactory
+from .factories import StaffUserFactory
 
 User = get_user_model()
 
 
 class TestUrls(TestCase):
     def setUp(self) -> None:
-        self.user = UserFactory()
-        self.client = Client()
-        self.client.force_login(self.user)  # ?)
+        self.user = StaffUserFactory()
+        self.client.force_login(self.user)
 
     def test_url_import_mixin(self):
         url = reverse("admin:auth_user_import")
