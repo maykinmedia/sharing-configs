@@ -33,6 +33,15 @@ def get_folders_from_api() -> dict:
         # return error msg from API point
         print("file not found,return empty {}")
         return {"error": "no data"}
+    # for using real external API
+    except requests.exceptions.ConnectionError as err:
+        print("Error Connecting:", err)
+    except requests.exceptions.Timeout:
+        print("Timeout Error. Try again?")
+    except requests.exceptions.HTTPError as err:
+        print("HTTP greet : Something Else", err)
+    except requests.exceptions.RequestException as err:
+        print("Final (unknown) error", err)
 
 
 def get_imported_folders_choices() -> list:
@@ -52,12 +61,17 @@ def get_imported_folders_choices() -> list:
 def get_files_in_folder_from_api(folder) -> dict:
     """
     mock an API call (list of available files in a given folder )
-    example:  {"files_list":["file_one","file_two","file_three"]}
+    from testapp/mock_data/files_folder_x
+    return files for a given folder
     """
+    if folder == "folder_one":
+        path = "mock_data/folders/files_folder_1.json"
+    elif folder == "folder_two":
+        path = "mock_data/folders/files_folder_2.json"
+    else:
+        print("no folder, no path")
     try:
-        with open(
-            os.path.join(settings.BASE_DIR, "mock_data/files_in_folder.json")
-        ) as fh:
+        with open(os.path.join(settings.BASE_DIR, path)) as fh:
             data = json.load(fh)
             return data
     # for using json file mocking external API

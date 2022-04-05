@@ -26,3 +26,12 @@
     </div>
     <br/>
 {% endblock %}
+
+{% block extrahead %}{{ block.super }}
+<script src="{% url 'admin:jsi18n' %}"></script>
+<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}" defer type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'admin/js/jquery.init.js' %} " defer type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'sharing_configs/jquery_in_action.js'%}" defer type="text/javascript"></script>
+
+{% endblock %}
+

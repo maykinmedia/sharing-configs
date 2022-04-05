@@ -1,9 +1,12 @@
 {% extends 'admin/change_form.html' %}
 {% load i18n admin_urls static %}
 {% block content %}  
-    <h1>{% trans 'Import from Community' %}</h1>              
-        <form id="import-form" action="{% url 'admin:auth_user_import' %}" method="POST" enctype="multipart/form-data"> 
-            {% csrf_token %}
+    <h1>{% trans 'Import from Community' %}</h1>   
+      
+        <form id="import-form" action="{% url 'admin:auth_user_import' %}"   
+        data-action="{% url 'admin:auth_user_ajax' %}"
+        method="POST" enctype="multipart/form-data"> 
+           {% csrf_token %}
             <fieldset class="module aligned">
                 {% for field in form %}
                     <div class="form-row">
@@ -16,8 +19,9 @@
                     </div>
                 {% endfor %}
             </fieldset>
-            <div class="submit-row">
-                <input type="submit" class="default" value="{% trans 'Import' %}">
+            <div class="submit-row">                
+                <input type="submit" class="default enableOnInput" disabled="disabled"
+                id="submitBtn" value="{% trans 'Import' %}">      
             </div>
         </form>
     </div>
@@ -27,8 +31,9 @@
 
 {% block extrahead %}{{ block.super }}
 <script src="{% url 'admin:jsi18n' %}"></script>
-<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %} " type="text/javascript" charset="utf-8"></script>
-<script src="{% static 'admin/js/jquery.init.js' %} " type="text/javascript" charset="utf-8"></script>
-<script src="{% static 'sharing_configs/ajax_in_action.js' %}" type="text/javascript" defer></script>
+<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}" defer type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'admin/js/jquery.init.js' %} " defer type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'sharing_configs/jquery_in_action.js'%}" defer type="text/javascript"></script>
+<script src="{% static 'sharing_configs/ajax_in_action.js' %}"  type="text/javascript" defer></script>
 {% endblock %}
 

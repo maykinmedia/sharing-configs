@@ -1,3 +1,5 @@
+from logging import raiseExceptions
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -15,9 +17,15 @@ class ImportForm(forms.Form):
     folder = FolderChoiceField(label=_("Folders"), required=True)
     file_name = forms.ChoiceField(
         label=_("File name"),
-        required=False,
+        required=True,
         help_text=_("Name of the file in storage folder"),
     )
+
+    def clean_file_name(self):
+        file_name = self.cleaned_data["file_name"]
+        if file_name == "":
+            raise forms.ValidationError("File should have a name")
+        return file_name
 
 
 class ExportToForm(forms.Form):
@@ -34,7 +42,7 @@ class ExportToForm(forms.Form):
         initial=False,
         help_text=_("Overwrite the existing file in the storage folder"),
     )
-    folder_name = forms.CharField(
+    folder_name = FolderChoiceField(
         label=_("Folder name"),
         required=False,
     )

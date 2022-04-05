@@ -1,41 +1,29 @@
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-function buildHeader(){
-    const csrftoken = getCookie('csrftoken');
+function buildHeader(){    
     let headers = new Headers()    
     headers ={
         'Accept':'application/json',
         'Content-Type':'aplication-json',
-        'X-Requested-With': 'XMLHttpRequest',
-        "X-CSRFToken": csrftoken
+        'X-Requested-With': 'XMLHttpRequest',        
     }
     return headers
-
 }
+
 const AJAX_SELECT = document.getElementById('id_folder')
 
 let filesListMenu = document.getElementById("id_file_name")
 filesListMenu.innerHTML = '<option value="">files in folder</option>';
 
+// error generation
 let firstDivFormRow = document.getElementsByClassName("form-row")[0]
-let errorNote = document.createElement("div")
-errorNote.className = "input-error"
-errorNote.textContent="unable to find folders"
-firstDivFormRow.appendChild(errorNote)
-console.log("errorNote created")
+let errorUl = document.createElement("ul")
+let emptyDiv = document.createElement("div")
+firstDivFormRow.appendChild(emptyDiv)
+firstDivFormRow.appendChild(errorUl)
+let errorLi = document.createElement("li")
+errorUl.appendChild(errorLi)
+errorUl.className = "errorlist"
+// get jax url from form attr
+
 
 class TrackFolderMenu {
     /**
@@ -52,6 +40,7 @@ class TrackFolderMenu {
      */
     trackChange() {
         this.node.addEventListener('change', this.update.bind(this));
+        
     }
 
     /**
@@ -60,21 +49,27 @@ class TrackFolderMenu {
      */
     update() {
         let importForm = document.getElementById("import-form")
-        let importFormUrl = importForm.getAttribute('action')
-        let data = {"folder":this.node.value}        
+        let importFormUrlAjax = importForm.getAttribute('data-action')        
+        let folder = this.node.value   
+        let  param = {folder_name:folder}                 
+        // /admin/auth/user/fetch/files/?folder_name=folder_two
+        let importFormUrl = `${importFormUrlAjax}?` + new URLSearchParams(param)        
         fetch(importFormUrl,
             {
                 headers:buildHeader(),
-                method:"POST",
-                body:JSON.stringify({"data":data})
+                method:"GET"                
             }        
         )
         .then(resp=> resp.json())
-        .then(
-            this.populateList.bind(this))
+        .then((data)=>{
+            this.populateList(data)
+        })
+            //this.populateList.bind(this))
         .catch((err)=>{
-            console.log(err)
-            // errorMsg.innerHTML = "Unable to get folders"
+            // url in ajax request is not correct
+            console.log(err)            
+            this.populateList(data) 
+                      
         })        
     }
     /**
@@ -82,17 +77,22 @@ class TrackFolderMenu {
      * otherwise TODO: determine DOM elem to show error msg
      */
     populateList(data) {         
-        if (data.status_code === 200) {      
-        data.resp.forEach((item)=>{
-            filesListMenu.innerHTML +=`<option value="${item}">${item}</option>`
+        if (data.status_code === 200) { 
+            // reset drop-down menu for list of files  
+            filesListMenu.innerHTML = '<option value="">files in folder</option>';       
+            data.resp.forEach((item)=>{
+                filesListMenu.innerHTML +=`<option value="${item}">${item}</option>`
             })
             
-        }else{
-            // errorMsg.innerHTML = "Unable to get folders"
-            errorNote.textContent=`${data.status_code}`
-            // errorNote.textContent="smth went wrong"
-            // throw new Error("Unable to get folders");
-        }         
+        }else if (data.status_code==400){            
+            errorLi.textContent =`${data.error}`            
+            throw new Error("Status response 400. Unable to get files");
+        } else{                       
+            errorLi.textContent="Sorry.The url does not exist.Unable to get list of files \
+            for this folder.."
+            throw new Error("Error. The url does not exist");
+
+        }        
     }
 }
 new TrackFolderMenu(AJAX_SELECT);
