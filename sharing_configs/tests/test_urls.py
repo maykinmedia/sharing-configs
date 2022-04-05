@@ -21,3 +21,8 @@ class TestUrls(TestCase):
         url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
         resolved_url = resolve(url)
         self.assertEqual(resolved_url.func.__name__, "sharing_configs_export_view")
+
+    def test_url_import_ajax(self):
+        url = reverse("admin:auth_user_ajax")
+        resolved_url = resolve(url)
+        self.assertEqual(resolved_url.func.__name__, "get_ajax_fetch_files")

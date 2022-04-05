@@ -12,13 +12,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from requests.exceptions import ConnectionError, RequestException, Timeout
-
-from sharing_configs.client_util import SharingConfigsClient
-
-from .factories import StaffUserFactory, UserFactory
-
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))  # sharing_configs/tests
+from .factories import StaffUserFactory
 
 User = get_user_model()
 
@@ -29,7 +23,6 @@ class TestImportMixin(TestCase):
     def setUp(self) -> None:
         self.user = StaffUserFactory()
         self.client.force_login(self.user)
-        # self.api_config = SharingConfigsClient()
 
     @patch("sharing_configs.utils.get_folders_from_api")
     def test_call_external_api_from_custom_formfield(self, get_mock_data):
@@ -86,16 +79,14 @@ class TestImportMixin(TestCase):
     def test_ajax_correct_data(self, get_mock_data):
         """request returns correct list of files for a given folder"""
         get_mock_data.return_value = ["folder_one.json", "folder_one.html"]
-        url = reverse("admin:auth_user_import")
-        resp = self.client.post(
+        url = reverse("admin:auth_user_ajax") + str("?folder_name=folder_one")
+        resp = self.client.get(
             url,
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
             content_type="application/json",
-            data={"folder": "folder_one"},
         )
         resp_data = resp.json()
         data = resp_data.get("resp")
-        # data ['folder_one.json', 'folder_one.html']
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(data, ["folder_one.json", "folder_one.html"])
         self.assertEqual(2, len(data))
