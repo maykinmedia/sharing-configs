@@ -21,7 +21,7 @@ def download_file(url: str) -> bytes:
 
 def get_folders_from_api(params) -> dict:
     """
-    make an API call using params selecting export and import folders
+    make an API call using query params selecting export and import folders
     """
     try:
         # TODO:here get API call to fetch list of folders for a given user
@@ -48,7 +48,7 @@ def get_folders_from_api(params) -> dict:
 def get_imported_folders_choices(params) -> list:
     """
     create list of tuples (for folders) from based on  dict api response;
-    params to pass right perms to create a query in url
+    pass params to create a query in url
     """
     api_list_folders = get_folders_from_api(params)
     folders_choices = []
