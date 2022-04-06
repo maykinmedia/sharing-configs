@@ -18,7 +18,7 @@ class FolderForm(forms.Form):
     folder = forms.ChoiceField(label=_("Folders"), required=True, choices=[])
 
     def __init__(self, *args, **kwargs):
-        """make list of folders available with pre-poplated data in drop-down menu based on permissions"""
+        """make list of folders available with pre-populated data in drop-down menu based on permissions"""
         params = f"/?permission={self.permission}"
         folder_list = get_imported_folders_choices(params)
         folder_list.insert(0, (None, "Choose a folder"))
@@ -27,7 +27,7 @@ class FolderForm(forms.Form):
 
 
 class ImportForm(FolderForm):
-    """Provide form pre-populated with a list of writable AND readable folders"""
+    """Provide form  with a list of writable AND readable folders"""
 
     permission = "all"
 
@@ -45,7 +45,7 @@ class ImportForm(FolderForm):
 
 
 class ExportToForm(FolderForm):
-    """Provide form pre-populated with a list of writable folders"""
+    """Provide form  with a list of writable folders"""
 
     permission = "write"
 

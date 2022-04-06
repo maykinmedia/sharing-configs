@@ -17,7 +17,7 @@ from solo.admin import SingletonModelAdmin
 from sharing_configs.models import SharingConfigsConfig
 
 from .forms import ExportToForm, ImportForm
-from .tests.mock_data import mock_func
+
 from .utils import get_files_in_folder_from_api, get_imported_files_choices
 
 
