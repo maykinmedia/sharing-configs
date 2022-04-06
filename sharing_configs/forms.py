@@ -6,15 +6,31 @@ from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
 from .fields import FolderChoiceField
+from .utils import get_imported_folders_choices
 
 
-class ImportForm(forms.Form):
+class FolderForm(forms.Form):
     """
-    custom FolderChoiceField creation triggers an API call to (per)populate drop-down menu
-    for folders available for a given user
+    Trigger an API call to get folders available for a given user
     """
 
-    folder = FolderChoiceField(label=_("Folders"), required=True)
+    permission = None  # "all"
+    folder = forms.ChoiceField(label=_("Folders"), required=True, choices=[])
+
+    def __init__(self, *args, **kwargs):
+        """make list of folders available with pre-poplated data in drop-down menu based on permissions"""
+        params = f"/?permission={self.permission}"
+        folder_list = get_imported_folders_choices(params)
+        folder_list.insert(0, (None, "Choose a folder"))
+        super().__init__(*args, **kwargs)
+        self.fields["folder"].choices = list(folder_list)
+
+
+class ImportForm(FolderForm):
+    """Provide form pre-populated with a list of writable AND readable folders"""
+
+    permission = "all"
+
     file_name = forms.ChoiceField(
         label=_("File name"),
         required=True,
@@ -28,7 +44,10 @@ class ImportForm(forms.Form):
         return file_name
 
 
-class ExportToForm(forms.Form):
+class ExportToForm(FolderForm):
+    """Provide form pre-populated with a list of writable folders"""
+
+    permission = "write"
 
     file_name = forms.CharField(
         label=_("File name"),
@@ -41,10 +60,6 @@ class ExportToForm(forms.Form):
         required=False,
         initial=False,
         help_text=_("Overwrite the existing file in the storage folder"),
-    )
-    folder_name = FolderChoiceField(
-        label=_("Folder name"),
-        required=False,
     )
 
     class Meta:

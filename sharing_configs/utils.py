@@ -19,13 +19,14 @@ def download_file(url: str) -> bytes:
     return response.content
 
 
-def get_folders_from_api() -> dict:
+def get_folders_from_api(params) -> dict:
     """
-    mock  data (list of available folders via API call)
-    example: {"data":["folder_one","folder_two","folder_three"]}
+    make an API call using params selecting export and import folders
     """
     try:
         # TODO:here get API call to fetch list of folders for a given user
+        api_url = "https://api.com/"
+        url = api_url + params
         with open(os.path.join(settings.BASE_DIR, "mock_data/folders.json")) as fh:
             data = json.load(fh)
             return data
@@ -44,17 +45,20 @@ def get_folders_from_api() -> dict:
         print("Final (unknown) error", err)
 
 
-def get_imported_folders_choices() -> list:
+def get_imported_folders_choices(params) -> list:
     """
-    create list of tuples (for folders) from based on  dict in  api response
+    create list of tuples (for folders) from based on  dict api response;
+    params to pass right perms to create a query in url
     """
-    api_list_folders = get_folders_from_api()
+    api_list_folders = get_folders_from_api(params)
     folders_choices = []
     try:
         for folder in api_list_folders["data"]:
             folders_choices.append((folder, folder))
     except Exception as e:
-        print("exeption block", e)
+        # print("exeption block", e) # form_folder_field[1]
+        return e
+    # [('folder_one', 'folder_one'), ('folder_two', 'folder_two')]
     return folders_choices
 
 

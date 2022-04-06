@@ -24,19 +24,14 @@ class TestImportMixin(TestCase):
         self.user = StaffUserFactory()
         self.client.force_login(self.user)
 
-    @patch("sharing_configs.utils.get_folders_from_api")
-    def test_call_external_api_from_custom_formfield(self, get_mock_data):
+    def test_call_external_api_from_custom_formfield(self):
         """
-        On request GET three <option></option>'s of "folder"field  will be pre-populated
-        with API data- triggered by (custom)field creation
+        On request GET <option></option>'s of "folder" field  will be pre-populated
+        with API data- triggered by form creation;
+        Current data: data comes from json file(two folders)
         """
         url = reverse("admin:auth_user_import")
-        get_mock_data.return_value = [
-            "folder_one",
-            "folder_two",
-        ]
         resp = self.client.get(url)
-
         form_folder_field = resp.context["form"]["folder"]
         form_file_name_field = resp.context["form"]["file_name"]
         top_choice_folders_empty = form_folder_field[0]
@@ -45,7 +40,6 @@ class TestImportMixin(TestCase):
         first_folder_name = first_prepopulated_folder.data["value"]
         second_prepopulated_folder = form_folder_field[2]
         second_folder_name = second_prepopulated_folder.data["value"]
-
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context["form"].is_bound, False)
         self.assertEqual(3, len(form_folder_field))
