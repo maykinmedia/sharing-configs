@@ -17,7 +17,6 @@ from solo.admin import SingletonModelAdmin
 from sharing_configs.models import SharingConfigsConfig
 
 from .forms import ExportToForm, ImportForm
-from .tests.mock_data import mock_func
 from .utils import get_files_in_folder_from_api, get_imported_files_choices
 
 
@@ -168,7 +167,6 @@ class SharingConfigsImportMixin:
             # field folder is pre-filled with resp from API (does not exist yet)
             # current source == json file with data
             form = self.get_sharing_configs_import_form()
-
             return render(
                 request,
                 self.import_template,
