@@ -21,9 +21,8 @@ class FolderForm(forms.Form):
         """make list of folders available with pre-populated data in drop-down menu based on permissions"""
         params = f"/?permission={self.permission}"
         folder_list = get_imported_folders_choices(params)
-        folder_list.insert(0, (None, "Choose a folder"))
+        kwargs.setdefault("Choose a folder", list(folder_list))
         super().__init__(*args, **kwargs)
-        self.fields["folder"].choices = list(folder_list)
 
 
 class ImportForm(FolderForm):
