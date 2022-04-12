@@ -19,16 +19,18 @@ class FolderForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         """make list of folders available with pre-populated data in drop-down menu based on permissions"""
+        # now: params is a hard-coded str => feature: will be changed to a dict (query param)
         params = f"/?permission={self.permission}"
         folder_list = get_imported_folders_choices(params)
-        kwargs.setdefault("Choose a folder", list(folder_list))
+        folder_list.insert(0, (None, "Choose a folder"))
         super().__init__(*args, **kwargs)
+        self.fields["folder"].choices = list(folder_list)
 
 
 class ImportForm(FolderForm):
     """Provide form  with a list of writable AND readable folders"""
 
-    permission = "all"
+    permission = "read"
 
     file_name = forms.ChoiceField(
         label=_("File name"),
