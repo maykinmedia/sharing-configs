@@ -2,10 +2,8 @@ from logging import raiseExceptions
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-from .fields import FolderChoiceField
 from .utils import get_imported_folders_choices
 
 
@@ -14,13 +12,13 @@ class FolderForm(forms.Form):
     Trigger an API call to get folders available for a given user
     """
 
-    permission = None  # "all"
+    permission = None
     folder = forms.ChoiceField(label=_("Folders"), required=True, choices=[])
 
     def __init__(self, *args, **kwargs):
-        """make list of folders available with pre-populated data in drop-down menu based on permissions"""
-        params = f"/?permission={self.permission}"
-        folder_list = get_imported_folders_choices(params)
+        """provide a list of folders(from API) for a drop-down menu based on permission."""
+        permission = {"permission": self.permission}
+        folder_list = get_imported_folders_choices(permission)
         folder_list.insert(0, (None, "Choose a folder"))
         super().__init__(*args, **kwargs)
         self.fields["folder"].choices = list(folder_list)
@@ -29,7 +27,7 @@ class FolderForm(forms.Form):
 class ImportForm(FolderForm):
     """Provide form  with a list of writable AND readable folders"""
 
-    permission = "all"
+    permission = "read"
 
     file_name = forms.ChoiceField(
         label=_("File name"),
