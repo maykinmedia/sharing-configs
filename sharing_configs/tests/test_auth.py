@@ -24,7 +24,6 @@ class TestExportMixinNotAuthUser(TestCase):
     """Tests that a not logged-in AND is_staff user is redirected"""
 
     def setUp(self) -> None:
-        self.client = Client()
         self.user = StaffUserFactory()
         self.url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
 
@@ -37,7 +36,6 @@ class TestExportMixinAuthUserNotStaff(TestCase):
     """Tests that a logged-in user but NOT is_staff is redirected"""
 
     def setUp(self) -> None:
-        self.client = Client()
         self.user = UserFactory()
         self.client.force_login(self.user)
         self.url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
@@ -67,7 +65,6 @@ class TestImportMixinNotAuthStaffUser(TestCase):
     """Tests that a not logged-in AND is_staff user is redirected"""
 
     def setUp(self) -> None:
-        self.client = Client()
         self.user = StaffUserFactory()
         self.url = reverse("admin:auth_user_import")
 
@@ -80,7 +77,6 @@ class TestImportMixinAuthUserNotStaff(TestCase):
     """Tests that a logged-in user but NOT is_staff is redirected"""
 
     def setUp(self) -> None:
-        self.client = Client()
         self.user = UserFactory()
         self.client.force_login(self.user)
         self.url = reverse("admin:auth_user_import")
