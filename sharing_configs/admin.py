@@ -12,12 +12,14 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+import requests
 from solo.admin import SingletonModelAdmin
 
+from sharing_configs.client_util import SharingConfigsClient
 from sharing_configs.models import SharingConfigsConfig
 
 from .forms import ExportToForm, ImportForm
-from .utils import get_files_in_folder_from_api, get_imported_files_choices
+from .utils import get_imported_files_choices
 
 
 @admin.register(SharingConfigsConfig)
@@ -58,16 +60,35 @@ class SharingConfigsExportMixin:
             form = self.get_sharing_configs_export_form(request.POST, initial=initial)
             if form.is_valid():
                 author = request.user
-                obj_to_export = self.get_sharing_configs_export_data(obj)
-                file_name = form.cleaned_data.get("file_name")
-                folder_name = form.cleaned_data.get("folder_name")
-                # get_files_in_folder_from_api
-                #  api call try/except request.post(url,data,headers)
-                msg = format_html(
-                    _("The object {object} has been exported successfully"),
-                    object=obj,
-                )
-                self.message_user(request, msg, level=messages.SUCCESS)
+                content = self.get_sharing_configs_export_data(obj)
+                filename = form.cleaned_data.get("file_name")
+                folder = form.cleaned_data.get("folder_name")
+                data = {
+                    "overwrite": form.cleaned_data.get("overwrite"),
+                    "content": content,
+                    "author": author,
+                    "filename": filename,
+                }
+                obj = SharingConfigsClient()
+                try:
+                    resp = obj.export(
+                        obj.get_export_url(folder), params={"folder": folder}, data=data
+                    )
+                    if resp.status_code == 200:
+                        msg = format_html(
+                            _("The object {object} has been exported successfully"),
+                            object=obj,
+                        )
+                        self.message_user(request, msg, level=messages.SUCCESS)
+                        msg = format_html(
+                            _("The object {object} has been exported successfully"),
+                            object=obj,
+                        )
+                        self.message_user(request, msg, level=messages.SUCCESS)
+
+                except requests.exceptions.RequestException as err:
+                    print("API call failed. Resp status != 200.")
+                    return {}
 
         else:
             form = self.sharing_configs_export_form(initial=initial)
@@ -121,6 +142,7 @@ class SharingConfigsImportMixin:
         folder = request.GET.get("folder_name")
         # API call to fetch files for a given folder
         api_response_list_files = get_imported_files_choices(folder)
+        # this(below) is NOT a mock but a part of ajax
         if api_response_list_files:
             return JsonResponse({"resp": api_response_list_files, "status_code": 200})
         else:
@@ -141,14 +163,10 @@ class SharingConfigsImportMixin:
             file_name = form.data.get("file_name")
             form.fields["file_name"].choices = [(file_name, file_name)]
             if form.is_valid():
-                data = {
-                    "folder": form.cleaned_data.get("folder"),
-                    "filename": form.cleaned_data.get("file_name"),
-                }
-                # TODO: call to API to fetch object using form data
-                # data to be send to API (needs label from settings)
-                # resp = requests.post()
-
+                folder = form.cleaned_data.get("folder")
+                filename = form.cleaned_data.get("file_name")
+                obj = SharingConfigsClient()
+                obj.import_data(folder, filename)
                 msg = format_html(
                     _("The object {object} has been imported successfully!"),
                     object=object,
