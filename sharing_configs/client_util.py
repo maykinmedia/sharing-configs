@@ -1,17 +1,25 @@
 from urllib.parse import urljoin
 
-from django.core.exceptions import ValidationError
-
 import requests
 
-from .models import SharingConfigsConfig
+from sharing_configs.models import SharingConfigsConfig
+
+from .exceptions import ApiException
 
 
 class SharingConfigsClient:
     def __init__(self):
         self.config = SharingConfigsConfig.get_solo()
         self.label = self.config.label
-        self.base_url = urljoin(self.config.api_endpoint, f"{self.label}/folder")
+        label_url = f"{str(self.label)}/folder/"
+        self.base_url = urljoin(self.config.api_endpoint, label_url)
+        # temp token to simulate pet-API
+        self.temp_token = "0a8df07c910016e9f8aa047dcd80d4cd945e31e9"
+        self.headers = {
+            "content-type": "application/json",
+            # "authorization": f"Token {self.config.api_key}",
+            "authorization": f"token {self.temp_token}",
+        }
 
     def get_list_folders_url(self):
         """url to get available folders and subfolders"""
@@ -34,61 +42,41 @@ class SharingConfigsClient:
         expect path params:label,folder
         body: filename(str),content(str),author(str),overwrite
         """
-        headers = {
-            "content-type": "application/json",
-            "authorization": f"Token {self.config.api_key}",
-        }
+        resp = requests.post(
+            url=self.get_export_url(folder), headers=self.headers, json=data
+        )
         try:
-            resp = requests.post(
-                self.get_export_url(folder), headers=headers, data=data
-            )
-            content = resp.json()
-            if resp.status_code == 200:
-                return content
-        except requests.exceptions.RequestException as err:
-            print("Smth went wrong. Resp status != 200")
-            return {}
+            resp.raise_for_status()  # status 400<->500
+        except requests.exceptions.HTTPError as e:
+            raise ApiException("Error during export of object")
+        return resp
 
     def import_data(self, folder: str, filename: str) -> bytes:
         """expect path params: label,folder,filename"""
-        headers = {
-            "content-type": "application/json",
-            "authorization": f"Token {self.config.api_key}",
-        }
+        resp = requests.get(
+            url=self.get_import_url(folder, filename), headers=self.headers
+        )
         try:
-            resp = requests.get(
-                url=self.get_import_url(folder, filename), headers=headers
-            )
-            content = resp.json()
-            if resp.status_code == 200:
-                # user gets a binary
-                # return content
-                return {"msg": "Import successful.Binary here"}
-
-        except requests.exceptions.RequestException as err:
-            # print("This url does not exist", err)
-            return {}
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise ApiException("Error during import of object")
+        return resp
 
     def get_folders(self, permission: dict) -> dict:
         """
         query params: permission(str) and page(int)
         API:{"results":[{"name":"folder_one"},{"name":"folder_two"}],"count":12 ...}
+        p.s also possible to generate API error
         """
-        headers = {
-            "content-type": "application/json",
-            "authorization": f"Token {self.config.api_key}",
-        }
+        print("url", self.get_list_folders_url())
+        resp = requests.get(
+            url=self.get_list_folders_url(), headers=self.headers, params=permission
+        )
         try:
-            resp = requests.get(
-                url=self.get_list_folders_url(), headers=headers, params=permission
-            )
-            content = resp.json()
-            if resp.status_code == 200:
-                # print("status OK, you've got your dict", content)
-                return content
-        except requests.exceptions.RequestException as err:
-            print("This url does not exist", err)
-            return {}
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            raise ApiException({"error": "No folders"})
+        return resp
 
     def get_files(self, folder):
         """
@@ -96,17 +84,9 @@ class SharingConfigsClient:
         expect query params: page (required)
         api return :{"results":["download_url":"http","filename":".."],"count":12,"next":".","previous":".."}
         """
-        print("line 93 folder is", folder)
-        headers = {
-            "content-type": "application/json",
-            "authorization": f"Token {self.config.api_key}",
-        }
-
+        resp = requests.get(self.get_folder_files_url(folder), headers=self.headers)
         try:
-            resp = requests.get(self.get_folder_files_url(folder), headers=headers)
-            content = resp.json()
-            if resp.status_code == 200:
-                print("list of files is here")
-                return content
-        except:
-            print("resp status != 200 ")
+            resp.raise_for_status()
+        except requests.HTTPError as exp:
+            raise ApiException("No files available")
+        return resp.json()

@@ -6,6 +6,8 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
+
+# from django.forms import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -16,8 +18,10 @@ import requests
 from solo.admin import SingletonModelAdmin
 
 from sharing_configs.client_util import SharingConfigsClient
+from sharing_configs.exceptions import ApiException
 from sharing_configs.models import SharingConfigsConfig
 
+from .exceptions import ApiException
 from .forms import ExportToForm, ImportForm
 from .utils import get_imported_files_choices
 
@@ -54,44 +58,58 @@ class SharingConfigsExportMixin:
         return template with form for GET request;
         process form data from POST request and make API call to endpoint
         """
+        info = (
+            self.model._meta.app_label,
+            self.model._meta.model_name,
+        )
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj.username}.json"}
         if request.method == "POST":
             form = self.get_sharing_configs_export_form(request.POST, initial=initial)
             if form.is_valid():
-                author = request.user
+                author = request.user.username
                 content = self.get_sharing_configs_export_data(obj)
                 filename = form.cleaned_data.get("file_name")
-                folder = form.cleaned_data.get("folder_name")
+                folder = form.cleaned_data.get("folder")
                 data = {
                     "overwrite": form.cleaned_data.get("overwrite"),
                     "content": content,
                     "author": author,
                     "filename": filename,
                 }
-                obj = SharingConfigsClient()
-                try:
-                    resp = obj.export(
-                        obj.get_export_url(folder), params={"folder": folder}, data=data
-                    )
-                    if resp.status_code == 200:
-                        msg = format_html(
-                            _("The object {object} has been exported successfully"),
-                            object=obj,
-                        )
-                        self.message_user(request, msg, level=messages.SUCCESS)
-                        msg = format_html(
-                            _("The object {object} has been exported successfully"),
-                            object=obj,
-                        )
-                        self.message_user(request, msg, level=messages.SUCCESS)
 
-                except requests.exceptions.RequestException as err:
-                    print("API call failed. Resp status != 200.")
-                    return {}
+                obj_client = SharingConfigsClient()
+                try:
+                    resp = obj_client.export(folder, data).json()
+                    msg = format_html(
+                        _("The object {object} has been exported successfully"),
+                        object=obj,
+                    )
+                    self.message_user(request, msg, level=messages.SUCCESS)
+                    return redirect(
+                        reverse(
+                            f"admin:{info[0]}_{info[1]}_export",
+                            kwargs={"object_id": obj.id},
+                        )
+                    )
+                except ApiException:
+                    msg = format_html(
+                        _("Export of the object {object} has been failed"),
+                        object=obj,
+                    )
+                    print("line 85 goes on ... ")
+                    self.message_user(request, msg, level=messages.WARNING)
+                    return redirect(
+                        reverse(
+                            f"admin:{info[0]}_{info[1]}_export",
+                            kwargs={"object_id": obj.id},
+                        )
+                    )
 
         else:
             form = self.sharing_configs_export_form(initial=initial)
+
+        # if form.errors:
         return render(
             request,
             self.change_form_export_template,
@@ -166,24 +184,29 @@ class SharingConfigsImportMixin:
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
                 obj = SharingConfigsClient()
-                obj.import_data(folder, filename)
-                msg = format_html(
-                    _("The object {object} has been imported successfully!"),
-                    object=object,
-                )
-                self.message_user(request, msg, level=messages.SUCCESS)
-                return redirect(reverse(f"admin:{info[0]}_{info[1]}_import"))
+                try:
+                    resp_api = obj.import_data(folder, filename)
+                    response = resp_api.json()
+                    msg = format_html(
+                        _("The (file) object has been imported successfully!"),
+                    )
+                    self.message_user(request, msg, level=messages.SUCCESS)
+                    return redirect(reverse(f"admin:{info[0]}_{info[1]}_import"))
 
+                except ApiException as e:
+                    msg = format_html(
+                        _("The (file) object import failed"),
+                    )
+                    self.message_user(request, msg, level=messages.WARNING)
+                    return redirect(reverse(f"admin:{info[0]}_{info[1]}_import"))
             else:
                 # form is NOT valid
                 return render(
                     request,
                     self.import_template,
-                    {"form": form, "opts": self.model._meta, "perm": "export"},
+                    {"form": form, "opts": self.model._meta},
                 )
         else:
-            # field folder is pre-filled with resp from API (does not exist yet)
-            # current source == json file with data
             form = self.get_sharing_configs_import_form()
             return render(
                 request,

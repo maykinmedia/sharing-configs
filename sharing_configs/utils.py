@@ -1,14 +1,11 @@
 import json
 import os
 
-from django.conf import settings
-from django.core.exceptions import ValidationError
-
 import requests
 
-from sharing_configs.models import SharingConfigsConfig
+from sharing_configs.client_util import SharingConfigsClient
 
-from .client_util import SharingConfigsClient
+from .exceptions import ApiException
 
 
 def get_folders_from_api(permission: str) -> dict:
@@ -16,12 +13,12 @@ def get_folders_from_api(permission: str) -> dict:
     make an API call selecting export or import folders
     return dict = {"results":[],count":12,"next":"http...","previous":"http:.."}
     """
-    # obj = SharingConfigsConfig()
-    # data = obj.get_folders(permission)
-    # return data
-    with open(os.path.join(settings.BASE_DIR, "mock_data/folders.json")) as fh:
-        data = json.load(fh)
-        return data
+    obj = SharingConfigsClient()
+    try:
+        data = obj.get_folders(permission)
+        return data.json()
+    except requests.exceptions.HTTPError as exc:
+        raise ApiException({"error": "No folders"})
 
 
 def get_imported_folders_choices(permission: str) -> list:
@@ -34,10 +31,10 @@ def get_imported_folders_choices(permission: str) -> list:
     if results_list is not None:
         for folder in results_list:
             folder = folder.get("name", None)
-
             folders_choices.append((folder, folder))
     else:
         print("no folders from api")
+        folders_choices = []
     # [('folder_one', 'folder_one'), ('folder_two', 'folder_two')]
     return folders_choices
 
@@ -48,20 +45,13 @@ def get_files_in_folder_from_api(folder: str) -> dict:
     from testapp/mock_data/files_folder_x
     return files for a given folder
     """
-    # mock placeholder of real API (see below)
-    if folder == "folder_one":
-        path = "mock_data/folders/files_folder_1.json"
-    elif folder == "folder_two":
-        path = "mock_data/folders/files_folder_2.json"
-    else:
-        print("no folder, no path")
-    with open(os.path.join(settings.BASE_DIR, path)) as fh:
-        data = json.load(fh)
-        return data
-    # real API
-    # obj = SharingConfigsClient()
-    # content = obj.get_files(folder)
-    # return content
+    obj = SharingConfigsClient()
+    try:
+        content = obj.get_files(folder)
+        return content
+    except requests.exceptions.HTTPError as e:
+        print(e)
+        raise ApiException
 
 
 def get_imported_files_choices(folder: str) -> list:

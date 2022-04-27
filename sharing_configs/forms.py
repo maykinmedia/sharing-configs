@@ -1,9 +1,13 @@
-from logging import raiseExceptions
-
+# from logging import raiseExceptions
 from django import forms
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
+
+# from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
+import requests
+
+from .exceptions import ApiException
 from .utils import get_imported_folders_choices
 
 
@@ -16,12 +20,24 @@ class FolderForm(forms.Form):
     folder = forms.ChoiceField(label=_("Folders"), required=True, choices=[])
 
     def __init__(self, *args, **kwargs):
-        """provide a list of folders(from API) for a drop-down menu based on permission."""
+        """provide a list of folders(from API) for a drop-down menu based on permission.
+        if api call fails raise custom exception and"""
         permission = {"permission": self.permission}
-        folder_list = get_imported_folders_choices(permission)
-        folder_list.insert(0, (None, "Choose a folder"))
-        super().__init__(*args, **kwargs)
-        self.fields["folder"].choices = list(folder_list)
+        folder_list = []
+        try:
+            folder_list = get_imported_folders_choices(permission)
+            if len(folder_list) > 0:
+                folder_list.insert(0, (None, "Choose a folder"))
+                super().__init__(*args, **kwargs)
+                self.fields["folder"].choices = list(folder_list)
+
+        except ApiException as err:
+            folder_list.insert(0, (None, "Choose a folder"))
+            super().__init__(*args, **kwargs)
+            self.fields[
+                "folder"
+            ].help_text = "No folders available.Server is probably down"
+            self.fields["folder"].choices = folder_list
 
 
 class ImportForm(FolderForm):
@@ -60,5 +76,5 @@ class ExportToForm(FolderForm):
         help_text=_("Overwrite the existing file in the storage folder"),
     )
 
-    class Meta:
-        fields = ("file_name", "overwrite", "folder_name")
+    # class Meta:
+    #     fields = ("file_name", "overwrite", "folder")
