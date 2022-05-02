@@ -1,39 +1,43 @@
 {% extends 'admin/change_form.html' %}
 {% load i18n admin_urls static %}
-{% block content %}  
-    <h1>{% trans 'Import from Community' %}</h1>   
-      
-        <form id="import-form" action="{% url 'admin:auth_user_import' %}"   
-        data-action="{% url 'admin:auth_user_ajax' %}"
-        method="POST" enctype="multipart/form-data"> 
-           {% csrf_token %}
-            <fieldset class="module aligned">
-                {% for field in form %}
-                    <div class="form-row">
-                        {{ field.errors }}
-                        <label class="{% if field.field.required %}required{% endif %}">{{ field.label|capfirst }}:</label>
-                        {{ field }}
-                        {% if field.field.help_text %}&nbsp;
-                            <div class="help">{{ field.field.help_text }}</div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </fieldset>
-            <div class="submit-row">                
-                <input type="submit" class="default enableOnInput" disabled="disabled"
-                id="submitBtn" value="{% trans 'Import' %}">      
-            </div>
-        </form>
+
+
+{% block content %}
+<h1>{% trans 'Import from Community' %}</h1>
+
+<form id="import-form" action="{% url 'admin:auth_user_import' %}" data-action="{% url 'admin:auth_user_ajax' %}"
+    method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+        {% for field in form %}
+        <div class="form-row">
+            {{ field.errors }}
+            <label class="{% if field.field.required %}required{% endif %}">{{ field.label|capfirst }}:</label>
+            {{ field }}
+            {% if field.field.help_text %}&nbsp;
+            <div class="help">{{ field.field.help_text }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </fieldset>
+    <div class="submit-row">
+        <input type="submit" class="default enableOnInput" disabled="disabled" id="submitBtn"
+            value="{% trans 'Import' %}">
     </div>
-    <br/>
-    
+</form>
+</div>
+<br />
+
 {% endblock %}
 
-{% block extrahead %}{{ block.super }}
+{% block extrahead %}
+{{ block.super }}
+
 <script src="{% url 'admin:jsi18n' %}"></script>
 <script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}" defer type="text/javascript" charset="utf-8"></script>
 <script src="{% static 'admin/js/jquery.init.js' %} " defer type="text/javascript" charset="utf-8"></script>
 <script src="{% static 'sharing_configs/jquery_in_action.js'%}" defer type="text/javascript"></script>
-<script src="{% static 'sharing_configs/ajax_in_action.js' %}"  type="text/javascript" defer></script>
-{% endblock %}
+<script src="{% static 'sharing_configs/ajax_in_action.js' %}" type="text/javascript" defer></script>
 
+
+{% endblock %}

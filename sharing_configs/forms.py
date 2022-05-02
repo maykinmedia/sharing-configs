@@ -1,11 +1,6 @@
 # from logging import raiseExceptions
 from django import forms
-from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
-
-# from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-
-import requests
 
 from .exceptions import ApiException
 from .utils import get_imported_folders_choices
@@ -21,7 +16,7 @@ class FolderForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         """provide a list of folders(from API) for a drop-down menu based on permission.
-        if api call fails raise custom exception and"""
+        if api call fails raise custom exception"""
         permission = {"permission": self.permission}
         folder_list = []
         try:
@@ -32,21 +27,21 @@ class FolderForm(forms.Form):
                 self.fields["folder"].choices = list(folder_list)
 
         except ApiException as err:
+            # If api call fails -> msg "help_text"
             folder_list.insert(0, (None, "Choose a folder"))
             super().__init__(*args, **kwargs)
-            self.fields[
-                "folder"
-            ].help_text = "No folders available.Server is probably down"
+            self.fields["folder"].help_text = "No folders available"
             self.fields["folder"].choices = folder_list
 
 
 class ImportForm(FolderForm):
-    """Provide form  with a list of writable AND readable folders"""
+    """Provide form  with a list of readable folders"""
 
     permission = "read"
 
-    file_name = forms.ChoiceField(
+    file_name = forms.CharField(
         label=_("File name"),
+        widget=forms.Select,
         required=True,
         help_text=_("Name of the file in storage folder"),
     )
@@ -75,6 +70,3 @@ class ExportToForm(FolderForm):
         initial=False,
         help_text=_("Overwrite the existing file in the storage folder"),
     )
-
-    # class Meta:
-    #     fields = ("file_name", "overwrite", "folder")

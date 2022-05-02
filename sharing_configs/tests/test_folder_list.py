@@ -4,7 +4,7 @@ from ..utils import FolderList
 
 
 class MyFolderCollecorTest(TestCase):
-    """Test collecting all folders and sub-folders in json"""
+    """Test collecting all folders and sub-folders from json"""
 
     def test_one_root_parent(self):
         lst_one = [

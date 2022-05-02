@@ -1,20 +1,13 @@
-import json
-import os
-from typing import Tuple, Union
+from typing import Union
 
-from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ImproperlyConfigured
-
-# from django.forms import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-import requests
 from solo.admin import SingletonModelAdmin
 
 from sharing_configs.client_util import SharingConfigsClient
@@ -80,7 +73,7 @@ class SharingConfigsExportMixin:
 
                 obj_client = SharingConfigsClient()
                 try:
-                    resp = obj_client.export(folder, data).json()
+                    resp = obj_client.export(folder, data)
                     msg = format_html(
                         _("The object {object} has been exported successfully"),
                         object=obj,
@@ -92,24 +85,27 @@ class SharingConfigsExportMixin:
                             kwargs={"object_id": obj.id},
                         )
                     )
-                except ApiException:
+                except ApiException as e:
                     msg = format_html(
-                        _("Export of the object {object} has been failed"),
-                        object=obj,
+                        _(f"Import of object failed: {e}"),
                     )
-                    print("line 85 goes on ... ")
-                    self.message_user(request, msg, level=messages.WARNING)
-                    return redirect(
-                        reverse(
-                            f"admin:{info[0]}_{info[1]}_export",
-                            kwargs={"object_id": obj.id},
-                        )
-                    )
+                    self.message_user(request, msg, level=messages.ERROR)
+
+            if not form.is_valid():
+                msg = format_html(
+                    _("The object {object} has been not exported"),
+                    object=obj,
+                )
+                self.message_user(request, msg, level=messages.ERROR)
+            return render(
+                request,
+                self.import_template,
+                {"form": form, "opts": self.model._meta},
+            )
 
         else:
             form = self.sharing_configs_export_form(initial=initial)
 
-        # if form.errors:
         return render(
             request,
             self.change_form_export_template,
@@ -122,7 +118,7 @@ class SharingConfigsExportMixin:
             self.model._meta.app_label,
             self.model._meta.model_name,
         )
-        my_urls = [
+        add_urls = [
             path(
                 "<path:object_id>/export/",
                 self.admin_site.admin_view(self.sharing_configs_export_view),
@@ -130,7 +126,7 @@ class SharingConfigsExportMixin:
             ),
         ]
 
-        return my_urls + urls
+        return add_urls + urls
 
     def get_sharing_configs_export_form(self, *args, **kwargs):
         """return object export form"""
@@ -157,10 +153,9 @@ class SharingConfigsImportMixin:
         raise NotImplemented
 
     def get_ajax_fetch_files(self, request, *args, **kwargs):
+        """ajax call to pass chosen folder to a view"""
         folder = request.GET.get("folder_name")
-        # API call to fetch files for a given folder
         api_response_list_files = get_imported_files_choices(folder)
-        # this(below) is NOT a mock but a part of ajax
         if api_response_list_files:
             return JsonResponse({"resp": api_response_list_files, "status_code": 200})
         else:
@@ -178,15 +173,12 @@ class SharingConfigsImportMixin:
         )
         if request.method == "POST":
             form = self.get_sharing_configs_import_form(request.POST)
-            file_name = form.data.get("file_name")
-            form.fields["file_name"].choices = [(file_name, file_name)]
             if form.is_valid():
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
                 obj = SharingConfigsClient()
                 try:
-                    resp_api = obj.import_data(folder, filename)
-                    response = resp_api.json()
+                    resp_api_dict = obj.import_data(folder, filename)
                     msg = format_html(
                         _("The (file) object has been imported successfully!"),
                     )
@@ -195,17 +187,22 @@ class SharingConfigsImportMixin:
 
                 except ApiException as e:
                     msg = format_html(
-                        _("The (file) object import failed"),
+                        _(f"Import of object failed: {e}"),
                     )
-                    self.message_user(request, msg, level=messages.WARNING)
-                    return redirect(reverse(f"admin:{info[0]}_{info[1]}_import"))
-            else:
-                # form is NOT valid
-                return render(
-                    request,
-                    self.import_template,
-                    {"form": form, "opts": self.model._meta},
+                    self.message_user(request, msg, level=messages.ERROR)
+
+            if not form.is_valid():
+                msg = format_html(
+                    _(f"Something went wrong during object import"),
                 )
+
+                self.message_user(request, msg, level=messages.ERROR)
+
+            return render(
+                request,
+                self.import_template,
+                {"form": form, "opts": self.model._meta},
+            )
         else:
             form = self.get_sharing_configs_import_form()
             return render(
@@ -224,7 +221,7 @@ class SharingConfigsImportMixin:
             self.model._meta.model_name,
         )
 
-        my_urls = [
+        add_urls = [
             path(
                 "fetch/files/",
                 self.admin_site.admin_view(self.get_ajax_fetch_files),
@@ -237,10 +234,10 @@ class SharingConfigsImportMixin:
             ),
         ]
 
-        return my_urls + urls
+        return add_urls + urls
 
     def get_sharing_configs_import_form(self, *args, **kwargs):
-        """return object import form"""
+        """return object of import form"""
         if self.sharing_configs_import_form is not None:
             form = self.sharing_configs_import_form(*args, **kwargs)
             return form
