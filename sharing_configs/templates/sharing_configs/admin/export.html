@@ -3,7 +3,7 @@
 
 
 {% block content %}
-    <h1>{% trans 'Import from Community' %}</h1>
+    <h1>{% trans 'Export to Community' %}</h1>
     <div>
         <form action="" method="POST" enctype="multipart/form-data">
             {% csrf_token %}
@@ -20,9 +20,18 @@
                 {% endfor %}
             </fieldset>
             <div class="submit-row">
-                <input type="submit" class="default" value="{% trans 'Import' %}">
+                <input type="submit" class="default" value="{% trans 'Export' %}">
             </div>
         </form>
     </div>
     <br/>
 {% endblock %}
+
+{% block extrahead %}{{ block.super }}
+<script src="{% url 'admin:jsi18n' %}"></script>
+<script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}" defer type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'admin/js/jquery.init.js' %} " defer type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'sharing_configs/jquery_in_action.js'%}" defer type="text/javascript"></script>
+
+{% endblock %}
+

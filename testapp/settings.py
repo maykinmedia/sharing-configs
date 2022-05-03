@@ -2,8 +2,8 @@ import os
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+DEBUG = True
 SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.sessions",
     "django.contrib.admin",
+    "django.contrib.messages",
     "solo",
     "sharing_configs",
     "testapp",
@@ -48,3 +49,10 @@ TEMPLATES = [
 ]
 
 ROOT_URLCONF = "testapp.urls"
+
+STATIC_URL = "/static/"
+STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"

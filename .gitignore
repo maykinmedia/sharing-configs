@@ -102,3 +102,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Editor directories and files
+.vscode
+
+# My own files/folders
+
+mock_error.py
+mock_data
