@@ -42,37 +42,38 @@ Install
 
     pip install sharing-configs
 
-2. Add `sharing_configs` to the `INSTALLED_APPS` setting.
-3. In the admin page of `SharingConfigsConfig` configure access to the Sharing Configs API
+2. Add ``sharing_configs`` to the ``INSTALLED_APPS`` setting.
+3. In the admin page of ``SharingConfigsConfig`` configure access to the Sharing Configs API
 
 Usage
 =====
 
 The Sharing Config Library provides two mixins to add into the ModelAdmin class of your resources:
-* `SharingConfigsImportMixin` - to import the resource
-* `SharingConfigsExportMixin` - to export the resource
+* ``SharingConfigsImportMixin`` - to import the resource
+* ``SharingConfigsExportMixin`` - to export the resource
 
 The mixins provide custom admin views and request Sharing Configs API under the hood.
 
 Import
 ------
 
-To use `SharingConfigsImportMixin` the developer should specify how to convert the imported file into the
-django model instance and override `get_sharing_configs_import_data` method
+To use ``SharingConfigsImportMixin`` the developer should specify how to convert the imported file into the
+django model instance and override ``get_sharing_configs_import_data`` method
 
 
 Export
 ------
 
-To use `SharingConfigsExportMixin` the developer should specify how to convert the django model instance into
-the exporting file and override `get_sharing_configs_export_data` method
+To use ``SharingConfigsExportMixin`` the developer should specify how to convert the django model instance into
+the exporting file and override ``get_sharing_configs_export_data`` method
 
 
-.. |build-status| image:: https://travis-ci.org/maykinmedia/sharing_configs.svg?branch=master
-    :target: https://travis-ci.org/maykinmedia/sharing_configs
+.. |build-status| image:: https://github.com/maykinmedia/sharing-configs/actions/workflows/ci.yaml/badge.svg?branch=master
+    :alt: Build status
+    :target: https://github.com/maykinmedia/sharing-configs/actions/workflows/ci.yaml?branch=master
 
-.. |coverage| image:: https://codecov.io/gh/maykinmedia/sharing_configs/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/maykinmedia/sharing_configs
+.. |coverage| image:: https://codecov.io/gh/maykinmedia/sharing-configs/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/maykinmedia/sharing-configs
     :alt: Coverage status
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
