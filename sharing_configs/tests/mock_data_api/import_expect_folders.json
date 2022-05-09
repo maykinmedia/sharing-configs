@@ -1,0 +1,17 @@
+{
+    "count": 123,
+    "next": "http://api.example.org/accounts/?page=4",
+    "previous": "http://api.example.org/accounts/?page=2",
+    "results": [
+        {
+            "name": "folder_one",
+            "children": [],
+            "permission": "read"
+        },
+        {
+            "name": "folder_two",
+            "children": [],
+            "permission": "read"
+        }
+    ]
+}

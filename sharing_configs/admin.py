@@ -41,8 +41,7 @@ class SharingConfigsExportMixin:
     def get_sharing_configs_export_data(self, obj: object) -> Union[str, bytes]:
         """
         Derived class should provide object to export
-        current state: export a string(or object.attr that has a string representaion)
-        # future: API expects an object == File(bytes)
+
         """
         raise NotImplemented
 
@@ -163,7 +162,7 @@ class SharingConfigsImportMixin:
 
     def import_from_view(self, request, **kwargs):
         """
-        return template with form and process data if form is filled;
+        return template with form and process data if form is bound;
         make API call to API point to download an object
 
         """
@@ -193,7 +192,7 @@ class SharingConfigsImportMixin:
 
             if not form.is_valid():
                 msg = format_html(
-                    _(f"Something went wrong during object import"),
+                    _("Something went wrong during object import"),
                 )
 
                 self.message_user(request, msg, level=messages.ERROR)

@@ -6,13 +6,12 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-import pytest
 import requests_mock
 
 from ..client_util import SharingConfigsClient
 from ..exceptions import ApiException
-from ..models import SharingConfigsConfig
 from .factories import SharingConfigsConfigFactory, StaffUserFactory
+from .mock_data_api.mock_util import get_mock_folders
 
 User = get_user_model()
 
@@ -31,15 +30,7 @@ class TestImportMixinPatchFuncs(TestCase):
         with mocked API data
         """
         url = reverse("admin:auth_user_import")
-        get_mock_data.return_value = {
-            "count": 123,
-            "next": "http://api.example.org/accounts/?page=4",
-            "previous": "http://api.example.org/accounts/?page=2",
-            "results": [
-                {"name": "folder_one", "children": []},
-                {"name": "folder_two", "children": []},
-            ],
-        }
+        get_mock_data.return_value = get_mock_folders("import")
         resp = self.client.get(url)
         form_folder_field = resp.context["form"]["folder"]
         form_file_name_field = resp.context["form"]["file_name"]
@@ -62,6 +53,7 @@ class TestImportMixinPatchFuncs(TestCase):
     @patch("sharing_configs.utils.get_files_in_folder_from_api")
     def test_ajax_correct_data(self, get_mock_data):
         """utils function returns correct list of files for a given folder"""
+        # TODO: create dispatch
         get_mock_data.return_value = {
             "count": 123,
             "next": "http://api.example.org/accounts/?page=4",
@@ -86,18 +78,7 @@ class TestImportMixinPatchFuncs(TestCase):
     @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     def test_import_valid_form(self, get_mock_data):
         """success response if import form valid"""
-        get_mock_data.return_value = {
-            "count": 123,
-            "next": "http://api.example.org/accounts/?page=4",
-            "previous": "http://api.example.org/accounts/?page=2",
-            "results": [
-                {
-                    "name": "string",
-                    "children": [{"name": "string", "children": []}],
-                    "permission": "read",
-                }
-            ],
-        }
+        get_mock_data.return_value = get_mock_folders("import")
         url = reverse("admin:auth_user_import")
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
         resp = self.client.get(url, json=data)
@@ -107,18 +88,8 @@ class TestImportMixinPatchFuncs(TestCase):
     def test_fail_import_form_without_file(self, get_mock_data):
         """if file name not in data, form with error message rendered in a template"""
         url = reverse("admin:auth_user_import")
-        get_mock_data.return_value = {
-            "count": 123,
-            "next": "http://api.example.org/accounts/?page=4",
-            "previous": "http://api.example.org/accounts/?page=2",
-            "results": [
-                {
-                    "name": "string",
-                    "children": [{"name": "string", "children": []}],
-                    "permission": "read",
-                }
-            ],
-        }
+        get_mock_data.return_value = get_mock_folders("import")
+
         data = {"folder": "folder_one", "file_name": ""}
         resp = self.client.post(url, data=data)
         form = resp.context["form"]
@@ -137,25 +108,16 @@ class TestImportMixinRequestsMock(TestCase):
         self.client.force_login(self.user)
         self.config_object = SharingConfigsConfigFactory()
         self.client_api = SharingConfigsClient()
+        self.folder = "folder_one"
+        self.filename = "test.txt"
+        self.url = urljoin(self.config_object.api_endpoint, self.config_object.label)
 
     @requests_mock.Mocker()
     def test_ok_request_get_from_form(self, mock_get):
         """API call success in fetching list of folders"""
-        return_value = {
-            "count": 123,
-            "next": "http://api.example.org/accounts/?page=4",
-            "previous": "http://api.example.org/accounts/?page=2",
-            "results": [
-                {
-                    "name": "string",
-                    "children": [{"name": "string", "children": []}],
-                    "permission": "read",
-                }
-            ],
-        }
-        url = urljoin(self.config_object.api_endpoint, self.config_object.label)
-        url += "/folder/?permission=read"
-        mock_get.get(url=url, json=return_value, status_code=200)
+        return_value = get_mock_folders("import")
+        self.url += "/folder/?permission=read"
+        mock_get.get(url=self.url, json=return_value, status_code=200)
         response = self.client_api.get_folders(permission={"permission": "read"})
         self.assertTrue(mock_get.called)
         self.assertEqual(response, return_value)
@@ -165,85 +127,34 @@ class TestImportMixinRequestsMock(TestCase):
         """API call success in fetching data with files"""
         folder = "collection"
         return_value = ["folder_one.json", "folder_one.html"]
-        url = urljoin(self.config_object.api_endpoint, self.config_object.label)
-        url += f"/folder/{folder}/files/"
-        mock_get.get(url=url, json=return_value, status_code=200)
+        self.url += f"/folder/{folder}/files/"
+        mock_get.get(url=self.url, json=return_value, status_code=200)
         response = self.client_api.get_files(folder)
         self.assertTrue(mock_get.called)
         self.assertEqual(response, return_value)
 
     @requests_mock.Mocker()
     def test_ok_request_get_import_data(self, mock_get):
-        """Import object successfull"""
+        """Import object successfull; return value is a binary"""
         return_value = {"msg": "Import successful.Binary here"}
-        folder = "folder_one"
-        filename = "test.txt"
-        url = urljoin(self.config_object.api_endpoint, self.config_object.label)
-        url += f"/folder/{folder}/files/{filename}/"
-        mock_get.get(url=url, json=return_value, status_code=200)
-        resp_str = self.client_api.import_data(folder, filename)
+        self.url += f"/folder/{self.folder}/files/{self.filename}"
+        mock_get.get(url=self.url, json=return_value, status_code=200)
+        resp_str = self.client_api.import_data(self.folder, self.filename)
         self.assertTrue(mock_get.called)
-        self.assertEqual(resp_str, {"msg": "Import successful.Binary here"})
+        self.assertEqual(resp_str, b'{"msg": "Import successful.Binary here"}')
 
     def test_failed_request_get_import_data(self):
         """API request-get failed to fetch object"""
-        folder = "folder_one"
-        filename = "test.txt"
-        url = urljoin(self.config_object.api_endpoint, self.config_object.label)
-        url += f"/folder/{folder}/files/{filename}/"
+        self.url += f"/folder/{self.folder}/files/{self.filename}"
         with requests_mock.Mocker() as mock_get:
-            mock_get.register_uri("GET", url, json={}, status_code=500)
-            with pytest.raises(ApiException):
-                self.client_api.import_data(folder, filename)
+            mock_get.register_uri("GET", self.url, json={}, status_code=500)
+            with self.assertRaises(ApiException):
+                self.client_api.import_data(self.folder, self.filename)
 
     def test_failed_fetch_folders_via_form_init(self):
         """API call failed to fetch list of folders: list of folders empty"""
-        url = urljoin(self.config_object.api_endpoint, self.config_object.label)
-        url += "/folder/?permission=read"
+        self.url += "/folder/?permission=read"
         with requests_mock.Mocker() as mock_get:
-            mock_get.register_uri("GET", url, json={}, status_code=500)
-            with pytest.raises(ApiException):
+            mock_get.register_uri("GET", self.url, json={}, status_code=500)
+            with self.assertRaises(ApiException):
                 self.client_api.get_folders(permission={"permission": "read"})
-
-        # TODO: to get feedback from a reviewer about a bug in my tests
-        # code returns json {'msg': 'Import successful.Binary here'} instead of raising exception
-        # Option N 1
-        # utittest.mock  patch doesn't work (see below requests_mock)
-        # @patch("sharing_configs.client_util.requests.get")
-        # def test_failed_request_get_import_data(self, mock_get):
-        #     """API request-get failed to fetch object"""
-        #     # test target 1: check of status_code == 500
-        #     # test target 2: check folder list = []
-        #     folder = "folder_one"
-        #     filename = "test.txt"
-        #     mock_get.return_value.status_code = 500
-        #     mock_get.get.return_value.raise_for_status.side_effect = [
-        #         requests.exceptions.HTTPError(),
-        #     ]
-
-        #     mock_get.get.return_value.json.return_value = None
-        #     response = self.client_api.import_data(folder, filename)
-        #     # response.raise_for_status()
-        #     mock_get.assert_called_once()
-        #     self.assertEqual(response.status_code, 500)
-        #################################################
-        # Option N 2
-        # TODO: this approach doesn't work either
-        # with self.assertRaises(ApiException) as exc:
-        #     # get errot AttributeError: '_AssertRaisesContext' object has no attribute 'exception'
-        #     response = self.client_api.import_data(folder, filename)
-        #     assert "requests.exceptions.HTTPError" in exc.exception
-
-        # N 2 requests_mock doesn't work either for me
-        # TODO: I see the same bug in this code as with unittests.mock patch: return json instead of raising an exception
-        # @requests_mock.Mocker()
-        # def test_failed_request_get_from_form(self, mock_get):
-        #     """API call failed to fetch list of folders: list of folders empty"""
-        #     url = urljoin(self.config_object.api_endpoint, self.config_object.label)
-        #     url += "/folder/?permission=read"
-        #     mock_get.get(url=url, exc=requests.exceptions.HTTPError) # also impossible to add status_code as a param
-        #     response = self.client_api.get_folders(permission={"permission": "read"})
-        #     response.raise_for_status()
-        #     self.assertTrue(mock_get.called)
-        #     self.assertTrue(mock_get.call_count)
-        #     self.assertRaises(requests.exceptions.HTTPError) #or ApiException

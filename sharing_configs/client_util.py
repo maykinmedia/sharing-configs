@@ -13,12 +13,9 @@ class SharingConfigsClient:
         self.label = self.config.label
         label_url = f"{str(self.label)}/folder/"
         self.base_url = urljoin(self.config.api_endpoint, label_url)
-        # temp token to simulate pet-API (will be deleted later)
-        self.temp_token = "0a8df07c910016e9f8aa047dcd80d4cd945e31e9"
         self.headers = {
             "content-type": "application/json",
-            # "authorization": f"Token {self.config.api_key}",
-            "authorization": f"token {self.temp_token}",
+            "authorization": f"Token {self.config.api_key}",
         }
 
     def get_list_folders_url(self) -> str:
@@ -31,7 +28,7 @@ class SharingConfigsClient:
 
     def get_import_url(self, folder, filename) -> str:
         """url to get a given file"""
-        return urljoin(self.base_url, f"{folder}/files/{filename}/")
+        return urljoin(self.base_url, f"{folder}/files/{filename}")
 
     def get_export_url(self, folder) -> str:
         """url to upload a file"""
@@ -39,8 +36,7 @@ class SharingConfigsClient:
 
     def export(self, folder, data) -> dict:
         """
-        expect path params:label,folder
-        body: filename(str),content(str),author(str),overwrite
+        expect path required param folder
         """
         resp = requests.post(
             url=self.get_export_url(folder), headers=self.headers, json=data
@@ -52,7 +48,7 @@ class SharingConfigsClient:
         return resp.json()
 
     def import_data(self, folder: str, filename: str) -> bytes:
-        """expect path params: label,folder,filename"""
+        """expect required path params: label,folder,filename to get binary data from API"""
         resp = requests.get(
             url=self.get_import_url(folder, filename), headers=self.headers
         )
@@ -60,13 +56,11 @@ class SharingConfigsClient:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
             raise ApiException("Error during import of object")
-        return resp.json()
+        return resp.content
 
     def get_folders(self, permission: dict) -> dict:
         """
-        query params: permission(str) and page(int)
-        API:{"results":[{"name":"folder_one"},{"name":"folder_two"}],"count":12 ...}
-        p.s also possible to generate API error
+        return dict with attr "results" containing list of folders
         """
         resp = requests.get(
             url=self.get_list_folders_url(), headers=self.headers, params=permission
@@ -75,13 +69,13 @@ class SharingConfigsClient:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
             raise ApiException({"error": "No folders"})
+
         return resp.json()
 
     def get_files(self, folder) -> dict:
         """
-        expect path params: label,folder
-        expect query params: page (required)
-        api return :{"results":["download_url":"http","filename":".."],"count":12,"next":".","previous":".."}
+        expect required path param folder;
+        return dict with attr "results" containing file names
         """
         resp = requests.get(self.get_folder_files_url(folder), headers=self.headers)
         try:

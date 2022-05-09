@@ -7,8 +7,7 @@ from .exceptions import ApiException
 
 def get_folders_from_api(permission: str) -> dict:
     """
-    make an API call selecting export or import folders
-    ex: {"results":[],count":12,"next":"http...","previous":"http:.."}
+    make an API call to fetch data about folders with a given permission
     """
     obj = SharingConfigsClient()
     try:
@@ -25,13 +24,15 @@ def get_imported_folders_choices(permission: str) -> list:
     """
     folders_choices = []
     api_dict = get_folders_from_api(permission)
-    results_list = api_dict.get("results", None)
+    results_list = api_dict.get("results", "No results in your dict")
     if results_list is not None:
-        for folder in results_list:
-            folder = folder.get("name", None)
+        lst = FolderList()
+        all_folders = lst.folder_collector(results_list)
+        for folder in all_folders:
             folders_choices.append((folder, folder))
     else:
         folders_choices = []
+    # folders_choices [('example_folder', 'example_folder'), ('example_subfolder', 'example_subfolder')]
     return folders_choices
 
 
