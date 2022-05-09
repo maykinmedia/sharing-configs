@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an idea for this project
+title: "Title here"
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Thema / Theme
+      options:
+        - "Import"
+        - "Export"
+        - "Other"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clearly describe the idea or need, possibly supplemented with a specific solution direction
+    validations:
+      required: true
+  - type: textarea
+    id: added-value
+    attributes:
+      label: Added value
+      description: Describe the added value for business operations or services
+    validations:
+      required: false
+  - type: textarea
+    id: remarks
+    attributes:
+      label: Additional context
+      description: Add any other context or screenshots about the feature request
+    validations:
+      required: false
