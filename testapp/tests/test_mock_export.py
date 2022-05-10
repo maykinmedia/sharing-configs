@@ -6,8 +6,9 @@ from django.test import TestCase
 
 import requests_mock
 
-from ..client_util import SharingConfigsClient
-from ..exceptions import ApiException
+from sharing_configs.client_util import SharingConfigsClient
+from sharing_configs.exceptions import ApiException
+
 from .factories import SharingConfigsConfigFactory, StaffUserFactory
 from .mock_data_api.mock_util import export_api_response
 

@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from ..utils import FolderList
+from sharing_configs.utils import FolderList
 
 
 class MyFolderCollecorTest(TestCase):
