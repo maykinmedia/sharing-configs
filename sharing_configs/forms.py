@@ -1,22 +1,46 @@
-from logging import raiseExceptions
-
+# from logging import raiseExceptions
 from django import forms
-from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-from .fields import FolderChoiceField
+from .exceptions import ApiException
+from .utils import get_imported_folders_choices
 
 
-class ImportForm(forms.Form):
+class FolderForm(forms.Form):
     """
-    custom FolderChoiceField creation triggers an API call to (per)populate drop-down menu
-    for folders available for a given user
+    Trigger an API call to get folders available for a given user
     """
 
-    folder = FolderChoiceField(label=_("Folders"), required=True)
-    file_name = forms.ChoiceField(
+    permission = None
+    folder = forms.ChoiceField(label=_("Folders"), required=True, choices=[])
+
+    def __init__(self, *args, **kwargs):
+        """provide a list of folders(from API) for a drop-down menu based on permission.
+        if api call fails raise custom exception"""
+
+        folder_list = []
+        try:
+            folder_list = get_imported_folders_choices(self.permission)
+            if len(folder_list) > 0:
+                folder_list.insert(0, (None, "Choose a folder"))
+                super().__init__(*args, **kwargs)
+                self.fields["folder"].choices = list(folder_list)
+
+        except ApiException as err:
+            # If api call fails -> msg "help_text"
+            folder_list.insert(0, (None, "Choose a folder"))
+            super().__init__(*args, **kwargs)
+            self.fields["folder"].help_text = "No folders available"
+            self.fields["folder"].choices = folder_list
+
+
+class ImportForm(FolderForm):
+    """Provide form  with a list of readable folders"""
+
+    permission = "read"
+    file_name = forms.CharField(
         label=_("File name"),
+        widget=forms.Select,
         required=True,
         help_text=_("Name of the file in storage folder"),
     )
@@ -28,7 +52,10 @@ class ImportForm(forms.Form):
         return file_name
 
 
-class ExportToForm(forms.Form):
+class ExportToForm(FolderForm):
+    """Provide form  with a list of writable folders"""
+
+    permission = "write"
 
     file_name = forms.CharField(
         label=_("File name"),
@@ -42,10 +69,3 @@ class ExportToForm(forms.Form):
         initial=False,
         help_text=_("Overwrite the existing file in the storage folder"),
     )
-    folder_name = FolderChoiceField(
-        label=_("Folder name"),
-        required=False,
-    )
-
-    class Meta:
-        fields = ("file_name", "overwrite", "folder_name")

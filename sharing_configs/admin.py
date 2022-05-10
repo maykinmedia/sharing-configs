@@ -1,11 +1,7 @@
-import json
-import os
-from typing import Tuple, Union
+from typing import Union
 
-from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -14,10 +10,13 @@ from django.utils.translation import gettext_lazy as _
 
 from solo.admin import SingletonModelAdmin
 
+from sharing_configs.client_util import SharingConfigsClient
+from sharing_configs.exceptions import ApiException
 from sharing_configs.models import SharingConfigsConfig
 
+from .exceptions import ApiException
 from .forms import ExportToForm, ImportForm
-from .utils import get_files_in_folder_from_api, get_imported_files_choices
+from .utils import get_imported_files_choices
 
 
 @admin.register(SharingConfigsConfig)
@@ -42,8 +41,7 @@ class SharingConfigsExportMixin:
     def get_sharing_configs_export_data(self, obj: object) -> Union[str, bytes]:
         """
         Derived class should provide object to export
-        current state: export a string(or object.attr that has a string representaion)
-        # future: API expects an object == File(bytes)
+
         """
         raise NotImplemented
 
@@ -52,25 +50,61 @@ class SharingConfigsExportMixin:
         return template with form for GET request;
         process form data from POST request and make API call to endpoint
         """
+        info = (
+            self.model._meta.app_label,
+            self.model._meta.model_name,
+        )
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj.username}.json"}
         if request.method == "POST":
             form = self.get_sharing_configs_export_form(request.POST, initial=initial)
             if form.is_valid():
-                author = request.user
-                obj_to_export = self.get_sharing_configs_export_data(obj)
-                file_name = form.cleaned_data.get("file_name")
-                folder_name = form.cleaned_data.get("folder_name")
-                # get_files_in_folder_from_api
-                #  api call try/except request.post(url,data,headers)
+                author = request.user.username
+                content = self.get_sharing_configs_export_data(obj)
+                filename = form.cleaned_data.get("file_name")
+                folder = form.cleaned_data.get("folder")
+                data = {
+                    "overwrite": form.cleaned_data.get("overwrite"),
+                    "content": content,
+                    "author": author,
+                    "filename": filename,
+                }
+
+                obj_client = SharingConfigsClient()
+                try:
+                    resp = obj_client.export(folder, data)
+                    msg = format_html(
+                        _("The object {object} has been exported successfully"),
+                        object=obj,
+                    )
+                    self.message_user(request, msg, level=messages.SUCCESS)
+                    return redirect(
+                        reverse(
+                            f"admin:{info[0]}_{info[1]}_export",
+                            kwargs={"object_id": obj.id},
+                        )
+                    )
+                except ApiException as e:
+                    msg = format_html(
+                        _(f"Import of object failed: {e}"),
+                    )
+                    self.message_user(request, msg, level=messages.ERROR)
+
+            if not form.is_valid():
                 msg = format_html(
-                    _("The object {object} has been exported successfully"),
+                    _("The object {object} has been not exported"),
                     object=obj,
                 )
-                self.message_user(request, msg, level=messages.SUCCESS)
+                self.message_user(request, msg, level=messages.ERROR)
+            return render(
+                request,
+                self.import_template,
+                {"form": form, "opts": self.model._meta},
+            )
 
         else:
             form = self.sharing_configs_export_form(initial=initial)
+
         return render(
             request,
             self.change_form_export_template,
@@ -83,7 +117,7 @@ class SharingConfigsExportMixin:
             self.model._meta.app_label,
             self.model._meta.model_name,
         )
-        my_urls = [
+        add_urls = [
             path(
                 "<path:object_id>/export/",
                 self.admin_site.admin_view(self.sharing_configs_export_view),
@@ -91,7 +125,7 @@ class SharingConfigsExportMixin:
             ),
         ]
 
-        return my_urls + urls
+        return add_urls + urls
 
     def get_sharing_configs_export_form(self, *args, **kwargs):
         """return object export form"""
@@ -118,8 +152,8 @@ class SharingConfigsImportMixin:
         raise NotImplemented
 
     def get_ajax_fetch_files(self, request, *args, **kwargs):
+        """ajax call to pass chosen folder to a view"""
         folder = request.GET.get("folder_name")
-        # API call to fetch files for a given folder
         api_response_list_files = get_imported_files_choices(folder)
         if api_response_list_files:
             return JsonResponse({"resp": api_response_list_files, "status_code": 200})
@@ -128,7 +162,7 @@ class SharingConfigsImportMixin:
 
     def import_from_view(self, request, **kwargs):
         """
-        return template with form and process data if form is filled;
+        return template with form and process data if form is bound;
         make API call to API point to download an object
 
         """
@@ -138,34 +172,37 @@ class SharingConfigsImportMixin:
         )
         if request.method == "POST":
             form = self.get_sharing_configs_import_form(request.POST)
-            file_name = form.data.get("file_name")
-            form.fields["file_name"].choices = [(file_name, file_name)]
             if form.is_valid():
-                data = {
-                    "folder": form.cleaned_data.get("folder"),
-                    "filename": form.cleaned_data.get("file_name"),
-                }
-                # TODO: call to API to fetch object using form data
-                # data to be send to API (needs label from settings)
-                # resp = requests.post()
+                folder = form.cleaned_data.get("folder")
+                filename = form.cleaned_data.get("file_name")
+                obj = SharingConfigsClient()
+                try:
+                    resp_api_dict = obj.import_data(folder, filename)
+                    msg = format_html(
+                        _("The (file) object has been imported successfully!"),
+                    )
+                    self.message_user(request, msg, level=messages.SUCCESS)
+                    return redirect(reverse(f"admin:{info[0]}_{info[1]}_import"))
 
+                except ApiException as e:
+                    msg = format_html(
+                        _(f"Import of object failed: {e}"),
+                    )
+                    self.message_user(request, msg, level=messages.ERROR)
+
+            if not form.is_valid():
                 msg = format_html(
-                    _("The object {object} has been imported successfully!"),
-                    object=object,
+                    _("Something went wrong during object import"),
                 )
-                self.message_user(request, msg, level=messages.SUCCESS)
-                return redirect(reverse(f"admin:{info[0]}_{info[1]}_import"))
 
-            else:
-                # form is NOT valid
-                return render(
-                    request,
-                    self.import_template,
-                    {"form": form, "opts": self.model._meta, "perm": "export"},
-                )
+                self.message_user(request, msg, level=messages.ERROR)
+
+            return render(
+                request,
+                self.import_template,
+                {"form": form, "opts": self.model._meta},
+            )
         else:
-            # field folder is pre-filled with resp from API (does not exist yet)
-            # current source == json file with data
             form = self.get_sharing_configs_import_form()
             return render(
                 request,
@@ -183,7 +220,7 @@ class SharingConfigsImportMixin:
             self.model._meta.model_name,
         )
 
-        my_urls = [
+        add_urls = [
             path(
                 "fetch/files/",
                 self.admin_site.admin_view(self.get_ajax_fetch_files),
@@ -196,10 +233,10 @@ class SharingConfigsImportMixin:
             ),
         ]
 
-        return my_urls + urls
+        return add_urls + urls
 
     def get_sharing_configs_import_form(self, *args, **kwargs):
-        """return object import form"""
+        """return object of import form"""
         if self.sharing_configs_import_form is not None:
             form = self.sharing_configs_import_form(*args, **kwargs)
             return form

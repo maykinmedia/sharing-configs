@@ -1,103 +1,78 @@
-import json
-import os
-
-from django.conf import settings
-from django.core.exceptions import ValidationError
-
 import requests
 
+from sharing_configs.client_util import SharingConfigsClient
 
-def download_file(url: str) -> bytes:
+from .exceptions import ApiException
+
+
+def get_folders_from_api(permission: str) -> dict:
+    """
+    make an API call to fetch data about folders with a given permission
+    """
+    obj = SharingConfigsClient()
     try:
-        response = requests.get(url)
-    except requests.exceptions.RequestException:
-        raise ValidationError("The url does not exist.")
-
-    if response.status_code != requests.codes.ok:
-        raise ValidationError("The url returned non OK status.")
-
-    return response.content
+        data = obj.get_folders(permission)
+        return data
+    except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
+        raise ApiException({"error": "No folders"})
 
 
-def get_folders_from_api() -> dict:
+def get_imported_folders_choices(permission: str) -> list:
     """
-    mock  data (list of available folders via API call)
-    example: {"data":["folder_one","folder_two","folder_three"]}
+    create list of tuples (folders name) based on api response
+    ex:[('folder_one', 'folder_one'), ('folder_two', 'folder_two')]
     """
-    try:
-        # TODO:here get API call to fetch list of folders for a given user
-        with open(os.path.join(settings.BASE_DIR, "mock_data/folders.json")) as fh:
-            data = json.load(fh)
-            return data
-    except FileNotFoundError:
-        # return error msg from API point
-        print("file not found,return empty {}")
-        return {"error": "no data"}
-    # for using real external API
-    except requests.exceptions.ConnectionError as err:
-        print("Error Connecting:", err)
-    except requests.exceptions.Timeout:
-        print("Timeout Error. Try again?")
-    except requests.exceptions.HTTPError as err:
-        print("HTTP greet : Something Else", err)
-    except requests.exceptions.RequestException as err:
-        print("Final (unknown) error", err)
-
-
-def get_imported_folders_choices() -> list:
-    """
-    create list of tuples (for folders) from based on  dict in  api response
-    """
-    api_list_folders = get_folders_from_api()
     folders_choices = []
-    try:
-        for folder in api_list_folders["data"]:
+    api_dict = get_folders_from_api(permission)
+    results_list = api_dict.get("results", "No results in your dict")
+    if results_list is not None:
+        lst = FolderList()
+        all_folders = lst.folder_collector(results_list)
+        for folder in all_folders:
             folders_choices.append((folder, folder))
-    except Exception as e:
-        print("exeption block", e)
+    else:
+        folders_choices = []
+    # folders_choices [('example_folder', 'example_folder'), ('example_subfolder', 'example_subfolder')]
     return folders_choices
 
 
-def get_files_in_folder_from_api(folder) -> dict:
+def get_files_in_folder_from_api(folder: str) -> dict:
     """
-    mock an API call (list of available files in a given folder )
-    from testapp/mock_data/files_folder_x
     return files for a given folder
     """
-    if folder == "folder_one":
-        path = "mock_data/folders/files_folder_1.json"
-    elif folder == "folder_two":
-        path = "mock_data/folders/files_folder_2.json"
-    else:
-        print("no folder, no path")
+    obj = SharingConfigsClient()
     try:
-        with open(os.path.join(settings.BASE_DIR, path)) as fh:
-            data = json.load(fh)
-            return data
-    # for using json file mocking external API
-    except FileNotFoundError:
-        # return error msg from API
-        return {}
-    except MemoryError:
-        # file is too big
-        return {}
-    # for using real external API
-    except requests.exceptions.ConnectionError as err:
-        print("Error Connecting:", err)
-    except requests.exceptions.Timeout:
-        print("Timeout Error. Try again?")
-    except requests.exceptions.HTTPError as err:
-        print("HTTP greet : Something Else", err)
-    except requests.exceptions.RequestException as err:
-        print("Final (unknown) error", err)
+        content = obj.get_files(folder)
+        return content
+    except requests.exceptions.HTTPError as e:
+        raise ApiException
 
 
-def get_imported_files_choices(folder) -> list:
+def get_imported_files_choices(folder: str) -> list:
     """
-    create list of files from parsing dict (api response)
+    create list of filenames based on api response and to be passed to js
+
     """
-    api_list_files = get_files_in_folder_from_api(folder)
+    api_dict = get_files_in_folder_from_api(folder)
+    results_list = api_dict.get("results", None)
     file_choices = []
-    for file in api_list_files["data"]:
-        file_choices.append((file))
+    if results_list is not None:
+        for item in results_list:
+            file_choices.append(item.get("filename"))
     return file_choices
+
+
+class FolderList:
+    def __init__(self) -> None:
+        self.folders_lst = []
+
+    def folder_collector(self, lst) -> list:
+        """
+        Take a list and extract all (nested)folders from it.
+        """
+
+        for item in lst:
+            self.folders_lst.append(item["name"])
+            if len(item.get("children")) != 0:
+                self.folder_collector(lst=item.get("children"))
+        return self.folders_lst

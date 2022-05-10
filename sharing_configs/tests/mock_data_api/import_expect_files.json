@@ -1,0 +1,15 @@
+{
+    "count": 123,
+    "next": "http://api.example.org/accounts/?page=4",
+    "previous": "http://api.example.org/accounts/?page=2",
+    "results": [
+        {
+            "filename": "folder_one.json",
+            "download_url": "http://example.com"
+        },
+        {
+            "filename": "folder_one.html",
+            "download_url": "http://example.com"
+        }
+    ]
+}
