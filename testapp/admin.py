@@ -1,4 +1,3 @@
-import base64
 import json
 
 from django.contrib import admin

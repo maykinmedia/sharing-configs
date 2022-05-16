@@ -75,7 +75,7 @@ class SharingConfigsExportMixin:
                 obj_client = SharingConfigsClient()
                 try:
                     resp = obj_client.export(folder, data)
-                    # TODO: what to do with resp at this point
+                    # what to do with this returned by api data  {"download_url": "http://example.com","filename": "string"} if everything is Ok?
                     msg = format_html(
                         _("The object {object} has been exported successfully"),
                         object=obj,
@@ -156,7 +156,6 @@ class SharingConfigsImportMixin:
     def get_sharing_configs_import_data(self, content: bytes) -> object:
         """
         Derived class should override this method converting content in bytes  to a model object;
-
         """
         raise NotImplemented
 
