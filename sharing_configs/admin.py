@@ -41,6 +41,7 @@ class SharingConfigsExportMixin:
 
     def sharing_configs_export_view(self, request, object_id, extra_context=None):
         """
+        return template with form for GET request;
         process form data from POST request and make API call to endpoint;
         initial expects str representation of an object
         """
