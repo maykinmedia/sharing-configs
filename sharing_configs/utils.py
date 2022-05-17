@@ -1,25 +1,7 @@
 import base64
 from typing import Optional
 
-import requests
-
 from sharing_configs.client_util import SharingConfigsClient
-
-from .exceptions import ApiException
-
-
-def get_folders_from_api(permission: Optional[str]) -> dict:
-    """
-    make an API call to fetch data about folders with a given permission
-    """
-    obj = SharingConfigsClient()
-
-    try:
-        data = obj.get_folders(permission)
-
-        return data
-    except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-        raise ApiException({"error": "No folders"})
 
 
 def get_imported_folders_choices(permission: Optional[str]) -> list:
@@ -28,7 +10,8 @@ def get_imported_folders_choices(permission: Optional[str]) -> list:
     ex:[('folder_one', 'folder_one'), ('folder_two', 'folder_two')]
     """
     folders_choices = []
-    api_dict = get_folders_from_api(permission)
+    obj = SharingConfigsClient()
+    api_dict = obj.get_folders(permission)
     results_list = api_dict.get("results", "No results in your dict")
     if results_list is not None:
         lst = FolderList()
@@ -37,20 +20,7 @@ def get_imported_folders_choices(permission: Optional[str]) -> list:
             folders_choices.append((folder, folder))
     else:
         folders_choices = []
-    # folders_choices [('example_folder', 'example_folder'), ('example_subfolder', 'example_subfolder')]
     return folders_choices
-
-
-def get_files_in_folder_from_api(folder: str) -> dict:
-    """
-    return files for a given folder
-    """
-    obj = SharingConfigsClient()
-    try:
-        content = obj.get_files(folder)
-        return content
-    except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-        raise ApiException
 
 
 def get_imported_files_choices(folder: str) -> list:
@@ -58,7 +28,8 @@ def get_imported_files_choices(folder: str) -> list:
     create list of filenames based on api response and to be passed to js
 
     """
-    api_dict = get_files_in_folder_from_api(folder)
+    obj = SharingConfigsClient()
+    api_dict = obj.get_files(folder)
     results_list = api_dict.get("results", None)
     file_choices = []
     if results_list is not None:

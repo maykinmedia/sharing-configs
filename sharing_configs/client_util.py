@@ -29,6 +29,7 @@ class SharingConfigsClient:
 
     def get_import_url(self, folder, filename) -> str:
         """url to get a given file"""
+
         return urljoin(self.base_url, f"{folder}/files/{filename}")
 
     def get_export_url(self, folder) -> str:
@@ -39,10 +40,9 @@ class SharingConfigsClient:
         """
         expect path required param folder
         """
-        resp = requests.post(
-            url=self.get_export_url(folder), headers=self.headers, json=data
-        )
+
         try:
+            resp = requests.post(url=self.get_export_url(folder), headers=self.headers, json=data)
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
             raise ApiException("Error during export of object")
@@ -50,12 +50,14 @@ class SharingConfigsClient:
 
     def import_data(self, folder: str, filename: str) -> bytes:
         """expect required path params: label,folder,filename to get binary data from API"""
-        resp = requests.get(
-            url=self.get_import_url(folder, filename), headers=self.headers
-        )
+
         try:
+
+            resp = requests.get(url=self.get_import_url(folder, filename), headers=self.headers)
+
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
+
             raise ApiException("Error during import of object")
         return resp.content
 
@@ -64,18 +66,23 @@ class SharingConfigsClient:
         return dict with attr "results" containing list of folders
         """
         if permission is not None:
-            resp = requests.get(
-                url=self.get_list_folders_url(), headers=self.headers, params=permission
-            )
+            try:
+                resp = requests.get(
+                    url=self.get_list_folders_url(),
+                    headers=self.headers,
+                    params=permission,
+                )
+                resp.raise_for_status()
+            except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
+                raise ApiException({"error": "No folders available"})
 
         else:
+            try:
+                resp = requests.get(url=self.get_list_folders_url(), headers=self.headers)
+                resp.raise_for_status()
 
-            resp = requests.get(url=self.get_list_folders_url(), headers=self.headers)
-
-        try:
-            resp.raise_for_status()
-        except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException({"error": "No folders"})
+            except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
+                raise ApiException({"error": "No folders available"})
 
         return resp.json()
 
@@ -88,5 +95,5 @@ class SharingConfigsClient:
         try:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException("No files available")
+            raise ApiException(f"No files available. {exc}")
         return resp.json()

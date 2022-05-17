@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+import requests
 import requests_mock
 
 from sharing_configs.client_util import SharingConfigsClient
@@ -24,7 +25,7 @@ class TestImportMixinPatchFuncs(TestCase):
         self.user = StaffUserFactory()
         self.client.force_login(self.user)
 
-    @patch("sharing_configs.utils.get_folders_from_api")
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     def test_call_external_api_from_form(self, get_mock_data):
         """
         On request GET "folder" form field  will be pre-populated
@@ -50,8 +51,9 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(first_folder_name, "folder_one")
         self.assertEqual(second_folder_name, "folder_two")
         self.assertTemplateUsed(resp, "sharing_configs/admin/import.html")
+        get_mock_data.assert_called_once_with(None)
 
-    @patch("sharing_configs.utils.get_files_in_folder_from_api")
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_files")
     def test_ajax_correct_data(self, get_mock_data):
         """utils function returns correct list of files for a given folder"""
         get_mock_data.return_value = {
@@ -74,6 +76,7 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(data, ["folder_one.json", "folder_one.html"])
         self.assertEqual(2, len(data))
+        get_mock_data.assert_called_once_with("folder_one")
 
     @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     def test_import_valid_form(self, get_mock_data):
@@ -81,15 +84,17 @@ class TestImportMixinPatchFuncs(TestCase):
         get_mock_data.return_value = get_mock_folders("import")
         url = reverse("admin:auth_user_import")
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        resp = self.client.get(url, json=data)
+        resp = self.client.post(url, json=data)
         self.assertEqual(resp.status_code, HTTPStatus.OK)
+        get_mock_data.assert_called_once_with(None)
 
-    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch(
+        "sharing_configs.client_util.SharingConfigsClient.get_folders",
+        return_value=get_mock_folders("import"),
+    )
     def test_fail_import_form_without_file(self, get_mock_data):
         """if file name not in data, form with error message rendered in a template"""
         url = reverse("admin:auth_user_import")
-        get_mock_data.return_value = get_mock_folders("import")
-
         data = {"folder": "folder_one", "file_name": ""}
         resp = self.client.post(url, data=data)
         form = resp.context["form"]
@@ -98,6 +103,23 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(form.is_bound, True)
         self.assertEqual(file_field.required, True)
         self.assertEqual(err_msg, "This field is required.")
+        get_mock_data.assert_called_once_with(None)
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
+    def test_import_valid_form(self, mock_import, get_mock_data_folders):
+        """if import form is valis -> success response and redirect to the same import url;
+        (mock)get_folders method also called by re-direct to supply template dropdown-menu with folders
+        """
+        mock_import.return_value = b"some-words"
+        get_mock_data_folders.return_value = get_mock_folders("import")
+        url = reverse("admin:auth_user_import")
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        resp = self.client.post(url, data=data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, url, status_code=302, target_status_code=200)
+        get_mock_data_folders.assert_called_with(None)
+        self.assertEqual(get_mock_data_folders.call_count, 2)
 
 
 class TestImportMixinRequestsMock(TestCase):
@@ -134,7 +156,7 @@ class TestImportMixinRequestsMock(TestCase):
         self.assertEqual(response, return_value)
 
     def test_failed_fetch_folders_via_form_init(self):
-        """API call failed with error 500 on request to fetch list of folders: list of folders empty"""
+        """API call failed with error 500 on request to fetch list of folders"""
 
         url = self.client_api.get_list_folders_url()
         with requests_mock.Mocker() as mock_get:
@@ -143,7 +165,7 @@ class TestImportMixinRequestsMock(TestCase):
             with self.assertRaises(ApiException):
                 self.client_api.get_folders(permission=None)
 
-    def test_failed_fetch_files_for_import(self):
+    def test_failed_404_fetch_files_for_import(self):
         """Client makes incorrect request to fetch list of files"""
 
         url = self.client_api.get_folder_files_url(folder="myfolder")
@@ -153,7 +175,7 @@ class TestImportMixinRequestsMock(TestCase):
             with self.assertRaises(ApiException):
                 self.client_api.get_files(folder="myfolder")
 
-    def test_failed_fetch_files_for_import(self):
+    def test_failed_500_fetch_files_for_import(self):
         """API call failed to fetch list of files"""
 
         url = self.client_api.get_folder_files_url(folder="myfolder")
@@ -162,18 +184,6 @@ class TestImportMixinRequestsMock(TestCase):
 
             with self.assertRaises(ApiException):
                 self.client_api.get_files(folder="myfolder")
-
-    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
-    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
-    def test_import_valid_form(self, mock_import, get_mock_data_folders):
-        """if import form valid success response and redirect to the same import url"""
-        mock_import.return_value = b"some-words"
-        get_mock_data_folders.return_value = get_mock_folders("import")
-        url = reverse("admin:auth_user_import")
-        data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        resp = self.client.post(url, data=data)
-        self.assertEqual(resp.status_code, 302)
-        self.assertRedirects(resp, url, status_code=302, target_status_code=200)
 
     @requests_mock.Mocker()
     def test_ok_request_get_import_data(self, mock_get):
@@ -184,3 +194,68 @@ class TestImportMixinRequestsMock(TestCase):
         resp = self.client_api.import_data(self.folder, self.filename)
         self.assertTrue(mock_get.called)
         self.assertEqual(resp, return_value)
+
+    @patch("sharing_configs.client_util.requests.get")
+    def test_query_params_list_folders_for_import(self, mock_get):
+        """no permissions in query params to get list of available folders in import"""
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.headers = {
+            "content-type": "application/json",
+            "authorization": self.config_object.api_key,
+        }
+        url = self.client_api.get_list_folders_url()
+        resp = self.client_api.get_folders(permission=None)
+        mock_get.assert_called_once_with(
+            url=url,
+            headers={
+                "content-type": "application/json",
+                "authorization": f"Token {self.config_object.api_key}",
+            },
+        )
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch("sharing_configs.client_util.requests.get")
+    def test_partial_network_problem_import(self, mock_import_data, mocked_folders):
+        """if connection problem occures a generic error message displayed on import template"""
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        mock_import_data.side_effect = requests.exceptions.ConnectionError
+        mocked_folders.return_value = get_mock_folders(mode="import")
+        url = reverse("admin:auth_user_import")
+        resp = self.client.post(url, data=data)
+        self.assertTrue(mock_import_data.called)
+        messages = list(resp.context["messages"])
+        self.assertTrue(mock_import_data.called)
+        self.assertEqual(str(messages[0]), "Import of object failed")
+        self.assertTemplateUsed("admin/import.html")
+        mock_import_data.assert_called_once_with(
+            url=self.client_api.get_import_url("folder_one", "zoo.txt"),
+            headers={
+                "content-type": "application/json",
+                "authorization": f"Token {self.config_object.api_key}",
+            },
+        )
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
+    @patch("sharing_configs.client_util.requests.get")
+    def test_total_network_problem_import(self, mocked_folders, mock_import_data):
+        """if connection problem occures not only during import data but also during fetching folders
+        a generic error message(error,'no folders_available') displayed on import template"""
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        mock_import_data.side_effect = requests.exceptions.ConnectionError
+        mocked_folders.side_effect = requests.exceptions.ConnectionError
+        url = reverse("admin:auth_user_import")
+        url_list_folders = self.client_api.get_list_folders_url()
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        resp = self.client.post(url, data=data)
+        messages = list(resp.context["messages"])
+        self.assertEqual(str(messages[0]), "Something went wrong during object import")
+        self.assertTrue(mocked_folders.called)
+        with self.assertRaisesMessage(ApiException, "No folders available"):
+            self.client_api.get_folders(permission=None)
+        mocked_folders.assert_called_with(
+            url=url_list_folders,
+            headers={
+                "content-type": "application/json",
+                "authorization": f"Token {self.config_object.api_key}",
+            },
+        )
