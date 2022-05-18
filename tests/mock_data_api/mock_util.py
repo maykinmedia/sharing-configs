@@ -13,10 +13,13 @@ def get_mock_folders(mode=None) -> dict:
     if mode == "export":
         file = "export_expect_folders.json"
     elif mode == "import":
+
         file = "import_expect_folders.json"
     mock_folder = get_mock_folder()
     path = f"{mock_folder}/{file}"
+
     if (file is not None) and (mode is not None):
+
         with open(path) as fh:
             return json.loads(fh.read())
 
