@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urljoin
 
 from django.contrib.auth import get_user_model
@@ -23,6 +23,7 @@ class TestExportMixinPatch(TestCase):
         self.client.force_login(self.user)
         self.config_object = SharingConfigsConfigFactory()
         self.client_api = SharingConfigsClient()
+
         self.url = urljoin(self.config_object.api_endpoint, self.config_object.label)
 
     @patch("sharing_configs.client_util.requests.post")
@@ -45,17 +46,27 @@ class TestExportMixinPatch(TestCase):
         mock_post.assert_called_once()
         self.assertEqual(response_dict, expect_dict)
 
+    def test_failed_fetch_folders_via_form_init(self):
+        """API call failed to fetch list of folders: list of folders empty"""
+
+        url = self.client_api.get_list_folders_url()
+        with requests_mock.Mocker() as mock_get:
+            mock_get.register_uri("GET", url, json={}, status_code=500)
+            with self.assertRaises(ApiException):
+                self.client_api.get_folders(permission=None)
+
     def test_fail_request_post(self):
         """mocking api failure during export of (file)object"""
         folder = "folder_bar"
-        self.url += f"/folder/{folder}/files/"
+        url = self.client_api.get_export_url(folder=folder)
         data = {
             "filename": "file.txt",
             "author": str(self.user),
             "content": "some file(object)",
             "overwrite": False,
         }
-        with requests_mock.Mocker() as mock_get:
-            mock_get.register_uri("POST", self.url, json=data, status_code=500)
+        with requests_mock.Mocker() as mock_post:
+            mock_post.register_uri("POST", url, json=data, status_code=500)
+
             with self.assertRaises(ApiException):
                 self.client_api.export(folder, data)
