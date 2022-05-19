@@ -3,6 +3,8 @@ import base64
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from sharing_configs.utils import get_str_from_encoded64_object
+
 from .factories import StaffUserFactory
 
 User = get_user_model()
@@ -17,7 +19,6 @@ class TestUtils(TestCase):
         """test func get_str_from_encoded64_object if it return a string after base
         64-encoding of a byte-like object"""
         content = b"example_file.txt"
-        decoded_base64_encoded_string = base64.b64encode(content).decode("utf-8")
-
-        self.assertEqual(decoded_base64_encoded_string, "ZXhhbXBsZV9maWxlLnR4dA==")
-        self.assertIsInstance(decoded_base64_encoded_string, str)
+        result_string = get_str_from_encoded64_object(content)
+        self.assertEqual(result_string, "ZXhhbXBsZV9maWxlLnR4dA==")
+        self.assertIsInstance(result_string, str)

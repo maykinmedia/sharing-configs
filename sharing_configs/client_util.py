@@ -1,4 +1,3 @@
-import pdb
 from typing import Union
 from urllib.parse import urljoin
 
@@ -68,6 +67,7 @@ class SharingConfigsClient:
             resp = requests.get(
                 url=self.get_list_folders_url(), headers=self.headers, params=permission
             )
+
         else:
 
             resp = requests.get(url=self.get_list_folders_url(), headers=self.headers)
