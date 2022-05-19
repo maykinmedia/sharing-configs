@@ -2,7 +2,8 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import urljoin
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, tag
+from django.urls import reverse
 
 import requests_mock
 
@@ -10,7 +11,7 @@ from sharing_configs.client_util import SharingConfigsClient
 from sharing_configs.exceptions import ApiException
 
 from .factories import SharingConfigsConfigFactory, StaffUserFactory
-from .mock_data_api.mock_util import export_api_response
+from .mock_data_api.mock_util import export_api_response, get_mock_folders
 
 User = get_user_model()
 
@@ -70,3 +71,17 @@ class TestExportMixinPatch(TestCase):
 
             with self.assertRaises(ApiException):
                 self.client_api.export(folder, data)
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch("sharing_configs.client_util.SharingConfigsClient.export")
+    def test_import_valid_form(self, mock_export, get_mock_data_folders):
+        """success response if export form valid"""
+        mock_export.return_value = {
+            "download_url": "http://example.com",
+            "filename": "string",
+        }
+        get_mock_data_folders.return_value = get_mock_folders("export")
+        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
+        data = {"folder": "folder_one", "file_name": "foo.txt"}
+        resp = self.client.post(url, data=data)
+        self.assertEqual(resp.status_code, 302)

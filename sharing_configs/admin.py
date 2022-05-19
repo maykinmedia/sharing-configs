@@ -56,8 +56,7 @@ class SharingConfigsExportMixin:
             self.model._meta.model_name,
         )
         main_url = f"admin:{info[0]}_{info[1]}_export"
-        ajax_url = f"admin:{info[0]}_{info[1]}_ajax"
-        context = {"main_url": main_url, "ajax_url": ajax_url}
+        context = {"main_url": main_url}
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj}.json"}
         if request.method == "POST":
@@ -186,7 +185,6 @@ class SharingConfigsImportMixin:
                     resp_api_bytes = obj.import_data(folder, filename)
                     content = base64.b64encode(resp_api_bytes)
                     self.get_sharing_configs_import_data(content)
-
                     msg = format_html(
                         _("The (file) object has been imported successfully!"),
                     )

@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urljoin
 
@@ -55,7 +54,6 @@ class TestImportMixinPatchFuncs(TestCase):
     @patch("sharing_configs.utils.get_files_in_folder_from_api")
     def test_ajax_correct_data(self, get_mock_data):
         """utils function returns correct list of files for a given folder"""
-        # TODO: create dispatch
         get_mock_data.return_value = {
             "count": 123,
             "next": "http://api.example.org/accounts/?page=4",
@@ -118,7 +116,6 @@ class TestImportMixinRequestsMock(TestCase):
     def test_ok_request_get_from_form(self, mock_get):
         """API call success in fetching list of folders"""
         value = get_mock_folders("import")
-        self.url += "/folder/"
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = value
         resp_dict = self.client_api.get_folders(permission=None)
@@ -130,7 +127,6 @@ class TestImportMixinRequestsMock(TestCase):
         """API call success in fetching data with files"""
         folder = "collection"
         return_value = ["folder_one.json", "folder_one.html"]
-        self.url += f"/folder/{folder}/files/"
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = return_value
         response = self.client_api.get_files(folder)
@@ -141,14 +137,12 @@ class TestImportMixinRequestsMock(TestCase):
     def test_ok_request_get_import_data(self, mock_get):
         """Import object successfull; return value is a binary"""
         return_value = b"example_file.txt"
-        self.url += f"/folder/{self.folder}/files/{self.filename}"
         mock_get.return_value.status_code = 200
         mock_get.return_value.content = return_value
         resp_str = self.client_api.import_data(self.folder, self.filename)
         self.assertTrue(mock_get.called)
         self.assertEqual(resp_str, b"example_file.txt")
 
-    # @tag("deze")
     def test_failed_fetch_folders_via_form_init(self):
         """API call failed to fetch list of folders: list of folders empty"""
 
@@ -158,3 +152,24 @@ class TestImportMixinRequestsMock(TestCase):
 
             with self.assertRaises(ApiException):
                 self.client_api.get_folders(permission=None)
+
+    def test_failed_fetch_files_for_import(self):
+        """API call failed to fetch list of files"""
+
+        url = self.client_api.get_folder_files_url(folder="myfolder")
+        with requests_mock.Mocker() as mock_get:
+            mock_get.register_uri("GET", url, json={}, status_code=500)
+
+            with self.assertRaises(ApiException):
+                self.client_api.get_files(folder="myfolder")
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
+    def test_import_valid_form(self, mock_import, get_mock_data_folders):
+        """success response if import form valid"""
+        mock_import.return_value = b"some-words"
+        get_mock_data_folders.return_value = get_mock_folders("import")
+        url = reverse("admin:auth_user_import")
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        resp = self.client.post(url, data=data)
+        self.assertEqual(resp.status_code, 302)
