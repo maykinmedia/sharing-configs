@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional
 from urllib.parse import urljoin
 
 import requests
@@ -59,7 +59,7 @@ class SharingConfigsClient:
             raise ApiException("Error during import of object")
         return resp.content
 
-    def get_folders(self, permission: Union[str, None]) -> dict:
+    def get_folders(self, permission: Optional[str]) -> dict:
         """
         return dict with attr "results" containing list of folders
         """

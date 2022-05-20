@@ -1,8 +1,7 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from urllib.parse import urljoin
 
-from django.contrib.auth import get_user_model
-from django.test import TestCase, tag
+from django.test import TestCase
 from django.urls import reverse
 
 import requests_mock
@@ -12,8 +11,6 @@ from sharing_configs.exceptions import ApiException
 
 from .factories import SharingConfigsConfigFactory, StaffUserFactory
 from .mock_data_api.mock_util import export_api_response, get_mock_folders
-
-User = get_user_model()
 
 
 class TestExportMixinPatch(TestCase):
@@ -27,25 +24,22 @@ class TestExportMixinPatch(TestCase):
 
         self.url = urljoin(self.config_object.api_endpoint, self.config_object.label)
 
-    @patch("sharing_configs.client_util.requests.post")
+    @requests_mock.Mocker()
     def test_ok_request_post(self, mock_post):
         """mocking success during export of an (file)object"""
         expect_dict = export_api_response()
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json.return_value = export_api_response()
         folder = "folder_one"
-        client_api = SharingConfigsClient()
-        response_dict = client_api.export(
-            folder=folder,
-            data={
-                "filename": "file.txt",
-                "author": str(self.user),
-                "content": "some file(object)",
-                "overwrite": False,
-            },
-        )
-        mock_post.assert_called_once()
-        self.assertEqual(response_dict, expect_dict)
+        data = {
+            "filename": "file.txt",
+            "author": str(self.user),
+            "content": "some file(object)",
+            "overwrite": False,
+        }
+        url = self.client_api.get_export_url(folder=folder)
+        mock_post.post(url, json=expect_dict)
+        response = self.client_api.export(folder="folder_one", data=data)
+        self.assertTrue(mock_post.called)
+        self.assertEqual(response, expect_dict)
 
     def test_failed_fetch_folders_via_form_init(self):
         """API call failed to fetch list of folders: list of folders empty"""
@@ -74,8 +68,8 @@ class TestExportMixinPatch(TestCase):
 
     @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     @patch("sharing_configs.client_util.SharingConfigsClient.export")
-    def test_import_valid_form(self, mock_export, get_mock_data_folders):
-        """success response if export form valid"""
+    def test_export_valid_form(self, mock_export, get_mock_data_folders):
+        """if export form valid response success and re-direct to the same export url"""
         mock_export.return_value = {
             "download_url": "http://example.com",
             "filename": "string",
@@ -85,3 +79,18 @@ class TestExportMixinPatch(TestCase):
         data = {"folder": "folder_one", "file_name": "foo.txt"}
         resp = self.client.post(url, data=data)
         self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, url, status_code=302, target_status_code=200)
+
+    @patch("sharing_configs.utils.get_folders_from_api")
+    def test_export_form_intials(self, get_mock_data):
+        """
+        On request GET  export form filename field  should be pre-populated
+        with initial data == string representaion of an object
+        """
+        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
+        initial_for_filename = {"file_name": f"{self.user}.json"}
+        get_mock_data.return_value = get_mock_folders("import")
+        resp = self.client.get(url)
+        initial_from_form = resp.context["form"]["file_name"].value()
+        self.assertEqual(resp.context["form"].is_bound, False)
+        self.assertEqual(initial_for_filename["file_name"], initial_from_form)

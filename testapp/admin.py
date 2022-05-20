@@ -1,3 +1,4 @@
+import base64
 import json
 
 from django.contrib import admin
@@ -29,5 +30,7 @@ class UserAdmin(SharingConfigsExportMixin, SharingConfigsImportMixin, admin.Mode
         return dump_json_user.encode("utf-8")
 
     def get_sharing_configs_import_data(self, content: bytes) -> object:
-        """current state: return list"""
-        print(content)
+        """current state: return bytes"""
+        decoded_content_utf = content.decode("utf-8")
+        obj = base64.b64decode(decoded_content_utf).decode("utf-8")
+        return obj

@@ -1,5 +1,5 @@
 import base64
-from typing import Union
+from typing import Optional
 
 import requests
 
@@ -8,7 +8,7 @@ from sharing_configs.client_util import SharingConfigsClient
 from .exceptions import ApiException
 
 
-def get_folders_from_api(permission: Union[str, None]) -> dict:
+def get_folders_from_api(permission: Optional[str]) -> dict:
     """
     make an API call to fetch data about folders with a given permission
     """
@@ -22,7 +22,7 @@ def get_folders_from_api(permission: Union[str, None]) -> dict:
         raise ApiException({"error": "No folders"})
 
 
-def get_imported_folders_choices(permission: Union[str, None]) -> list:
+def get_imported_folders_choices(permission: Optional[str]) -> list:
     """
     create list of tuples (folders name) based on api response
     ex:[('folder_one', 'folder_one'), ('folder_two', 'folder_two')]

@@ -1,10 +1,10 @@
 import base64
-from typing import Union
 
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.template import Context
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -23,9 +23,6 @@ from .utils import get_imported_files_choices, get_str_from_encoded64_object
 @admin.register(SharingConfigsConfig)
 class SharingConfigsConfig(SingletonModelAdmin):
     pass
-
-
-User = get_user_model()
 
 
 class SharingConfigsExportMixin:
@@ -56,7 +53,8 @@ class SharingConfigsExportMixin:
             self.model._meta.model_name,
         )
         main_url = f"admin:{info[0]}_{info[1]}_export"
-        context = {"main_url": main_url}
+        context = Context()
+        context.update({"main_url": main_url})
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj}.json"}
         if request.method == "POST":
@@ -106,10 +104,8 @@ class SharingConfigsExportMixin:
                 self.change_form_export_template,
                 {"form": form, "context": context, "opts": self.model._meta},
             )
-
         else:
             form = self.sharing_configs_export_form(initial=initial)
-
         return render(
             request,
             self.change_form_export_template,
@@ -174,7 +170,8 @@ class SharingConfigsImportMixin:
         )
         main_url = f"admin:{info[0]}_{info[1]}_import"
         ajax_url = f"admin:{info[0]}_{info[1]}_ajax"
-        context = {"main_url": main_url, "ajax_url": ajax_url}
+        context = Context()
+        context.update({"main_url": main_url, "ajax_url": ajax_url})
         if request.method == "POST":
             form = self.get_sharing_configs_import_form(request.POST)
             if form.is_valid():
@@ -184,9 +181,11 @@ class SharingConfigsImportMixin:
                 try:
                     resp_api_bytes = obj.import_data(folder, filename)
                     content = base64.b64encode(resp_api_bytes)
-                    self.get_sharing_configs_import_data(content)
+                    obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
-                        _("The (file) object has been imported successfully!"),
+                        _(
+                            f"The (file) object {str(obj)} has been imported successfully!"
+                        ),
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)
                     return redirect(reverse(main_url))
