@@ -134,7 +134,7 @@ class TestImportMixinRequestsMock(TestCase):
         self.assertEqual(response, return_value)
 
     def test_failed_fetch_folders_via_form_init(self):
-        """API call failed to fetch list of folders: list of folders empty"""
+        """API call failed with error 500 on request to fetch list of folders: list of folders empty"""
 
         url = self.client_api.get_list_folders_url()
         with requests_mock.Mocker() as mock_get:
@@ -142,6 +142,16 @@ class TestImportMixinRequestsMock(TestCase):
 
             with self.assertRaises(ApiException):
                 self.client_api.get_folders(permission=None)
+
+    def test_failed_fetch_files_for_import(self):
+        """Client makes incorrect request to fetch list of files"""
+
+        url = self.client_api.get_folder_files_url(folder="myfolder")
+        with requests_mock.Mocker() as mock_get:
+            mock_get.register_uri("GET", url, json={}, status_code=404)
+
+            with self.assertRaises(ApiException):
+                self.client_api.get_files(folder="myfolder")
 
     def test_failed_fetch_files_for_import(self):
         """API call failed to fetch list of files"""
