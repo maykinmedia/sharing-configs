@@ -20,7 +20,9 @@ class TestExportMixinNotAuthUser(TestCase):
         """render loggin template; redirect back if loggin OK"""
         resp = self.client.get(self.url, follow=True)
         next_url, status_code = resp.redirect_chain[-1]
-        self.assertEqual(next_url, f"/admin/login/?next=/admin/auth/user/{self.user.id}/export/")
+        self.assertEqual(
+            next_url, f"/admin/login/?next=/admin/auth/user/{self.user.id}/export/"
+        )
         self.assertEqual(302, status_code)
         self.assertTemplateUsed(resp, "admin/login.html")
 
