@@ -5,8 +5,8 @@
 {% block content %}
 <h1>{% trans 'Import from Community' %}</h1>
 
-<form id="import-form" action="{% url context.main_url %}" data-action="{% url context.ajax_url %}" method="POST"
-    enctype="multipart/form-data">
+<form id="import-form" action="{% url extra_context.main_url %}" data-action="{% url extra_context.ajax_url %}"
+    method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     <fieldset class="module aligned">
         {% for field in form %}

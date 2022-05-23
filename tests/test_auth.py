@@ -11,20 +11,14 @@ class TestExportMixinNotAuthUser(TestCase):
         self.user = StaffUserFactory()
         self.url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
 
-    def test_export_mixin_redirect(self):
-        """re-direct"""
-        resp = self.client.get(self.url)
-        self.assertEqual(302, resp.status_code)
-
     def test_export_mixin_render_login_template(self):
-        """render loggin template; redirect back if loggin OK"""
+        """redirect to login; if login OK redirect to prev page"""
         resp = self.client.get(self.url, follow=True)
         next_url, status_code = resp.redirect_chain[-1]
         self.assertEqual(
             next_url, f"/admin/login/?next=/admin/auth/user/{self.user.id}/export/"
         )
         self.assertEqual(302, status_code)
-        self.assertTemplateUsed(resp, "admin/login.html")
 
 
 class TestExportMixinAuthUserNotStaff(TestCase):
@@ -37,7 +31,10 @@ class TestExportMixinAuthUserNotStaff(TestCase):
 
     def test_get_request_export_mixin(self):
         resp = self.client.get(self.url, follow=True)
-        self.assertTemplateUsed(resp, "admin/login.html")
+        self.assertEqual(
+            resp.redirect_chain,
+            [(f"/admin/login/?next=/admin/auth/user/{self.user.id}/export/", 302)],
+        )
 
 
 class TestImportMixinNotAuthStaffUser(TestCase):
@@ -49,11 +46,13 @@ class TestImportMixinNotAuthStaffUser(TestCase):
 
     def test_get_request_import_mixin(self):
         resp = self.client.get(self.url, follow=True)
-        self.assertTemplateUsed(resp, "admin/login.html")
+        self.assertEqual(
+            resp.redirect_chain, [("/admin/login/?next=/admin/auth/user/import/", 302)]
+        )
 
 
 class TestImportMixinAuthUserNotStaff(TestCase):
-    """Logged-in user but NOT is_staff is redirected to loggin page"""
+    """Logged-in user but NOT is_staff is redirected to loggin page;"""
 
     def setUp(self) -> None:
         self.user = UserFactory()
@@ -62,4 +61,6 @@ class TestImportMixinAuthUserNotStaff(TestCase):
 
     def test_get_request_import_mixin(self):
         resp = self.client.get(self.url, follow=True)
-        self.assertTemplateUsed(resp, "admin/login.html")
+        self.assertEqual(
+            resp.redirect_chain, [("/admin/login/?next=/admin/auth/user/import/", 302)]
+        )

@@ -43,7 +43,7 @@ class SharingConfigsExportMixin:
         """
         raise NotImplemented
 
-    def sharing_configs_export_view(self, request, object_id):
+    def sharing_configs_export_view(self, request, object_id, extra_context=None):
         """
         process form data from POST request and make API call to endpoint;
         initial expects str representation of an object
@@ -53,8 +53,8 @@ class SharingConfigsExportMixin:
             self.model._meta.model_name,
         )
         main_url = f"admin:{info[0]}_{info[1]}_export"
-        context = Context()
-        context.update({"main_url": main_url})
+        extra_context = extra_context or {}
+        extra_context["main_url"] = main_url
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj}.json"}
         if request.method == "POST":
@@ -99,17 +99,28 @@ class SharingConfigsExportMixin:
                     object=obj,
                 )
                 self.message_user(request, msg, level=messages.ERROR)
+
             return render(
                 request,
                 self.change_form_export_template,
-                {"form": form, "context": context, "opts": self.model._meta},
+                {
+                    "form": form,
+                    "extra_context": extra_context,
+                    "opts": self.model._meta,
+                },
             )
         else:
             form = self.sharing_configs_export_form(initial=initial)
+
         return render(
             request,
             self.change_form_export_template,
-            {"object": obj, "form": form, "context": context, "opts": obj._meta},
+            {
+                "object": obj,
+                "form": form,
+                "extra_context": extra_context,
+                "opts": obj._meta,
+            },
         )
 
     def get_urls(self):
@@ -158,7 +169,7 @@ class SharingConfigsImportMixin:
         else:
             return JsonResponse({"status_code": 400, "error": "Unable to get folders"})
 
-    def import_from_view(self, request, **kwargs):
+    def import_from_view(self, request, extra_context=None):
         """
         return template with form and process data if form is bound;
         make API call to API point to download an object
@@ -170,8 +181,9 @@ class SharingConfigsImportMixin:
         )
         main_url = f"admin:{info[0]}_{info[1]}_import"
         ajax_url = f"admin:{info[0]}_{info[1]}_ajax"
-        context = Context()
-        context.update({"main_url": main_url, "ajax_url": ajax_url})
+        extra_context = extra_context or {}
+        extra_context["main_url"] = main_url
+        extra_context["ajax_url"] = ajax_url
         if request.method == "POST":
             form = self.get_sharing_configs_import_form(request.POST)
             if form.is_valid():
@@ -179,13 +191,10 @@ class SharingConfigsImportMixin:
                 filename = form.cleaned_data.get("file_name")
                 obj = SharingConfigsClient()
                 try:
-                    resp_api_bytes = obj.import_data(folder, filename)
-                    content = base64.b64encode(resp_api_bytes)
+                    content = obj.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
-                        _(
-                            f"The (file) object {str(obj)} has been imported successfully!"
-                        ),
+                        _(f"The (file) object {obj} has been imported successfully!"),
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)
                     return redirect(reverse(main_url))
@@ -206,8 +215,13 @@ class SharingConfigsImportMixin:
             return render(
                 request,
                 self.import_template,
-                {"form": form, "context": context, "opts": self.model._meta},
+                {
+                    "form": form,
+                    "extra_context": extra_context,
+                    "opts": self.model._meta,
+                },
             )
+
         else:
             form = self.get_sharing_configs_import_form()
             return render(
@@ -215,7 +229,7 @@ class SharingConfigsImportMixin:
                 self.import_template,
                 {
                     "form": form,
-                    "context": context,
+                    "extra_context": extra_context,
                     "opts": self.model._meta,
                 },
             )
