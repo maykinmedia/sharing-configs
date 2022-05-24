@@ -1,3 +1,4 @@
+from typing import Optional
 from urllib.parse import urljoin
 
 import requests
@@ -11,7 +12,7 @@ class SharingConfigsClient:
     def __init__(self) -> None:
         self.config = SharingConfigsConfig.get_solo()
         self.label = self.config.label
-        label_url = f"{str(self.label)}/folder/"
+        label_url = f"config/{str(self.label)}/folder/"
         self.base_url = urljoin(self.config.api_endpoint, label_url)
         self.headers = {
             "content-type": "application/json",
@@ -58,13 +59,19 @@ class SharingConfigsClient:
             raise ApiException("Error during import of object")
         return resp.content
 
-    def get_folders(self, permission: dict) -> dict:
+    def get_folders(self, permission: Optional[str]) -> dict:
         """
         return dict with attr "results" containing list of folders
         """
-        resp = requests.get(
-            url=self.get_list_folders_url(), headers=self.headers, params=permission
-        )
+        if permission is not None:
+            resp = requests.get(
+                url=self.get_list_folders_url(), headers=self.headers, params=permission
+            )
+
+        else:
+
+            resp = requests.get(url=self.get_list_folders_url(), headers=self.headers)
+
         try:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
@@ -80,6 +87,6 @@ class SharingConfigsClient:
         resp = requests.get(self.get_folder_files_url(folder), headers=self.headers)
         try:
             resp.raise_for_status()
-        except requests.HTTPError as exp:
+        except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
             raise ApiException("No files available")
         return resp.json()

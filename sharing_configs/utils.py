@@ -1,3 +1,6 @@
+import base64
+from typing import Optional
+
 import requests
 
 from sharing_configs.client_util import SharingConfigsClient
@@ -5,19 +8,21 @@ from sharing_configs.client_util import SharingConfigsClient
 from .exceptions import ApiException
 
 
-def get_folders_from_api(permission: str) -> dict:
+def get_folders_from_api(permission: Optional[str]) -> dict:
     """
     make an API call to fetch data about folders with a given permission
     """
     obj = SharingConfigsClient()
+
     try:
         data = obj.get_folders(permission)
+
         return data
     except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
         raise ApiException({"error": "No folders"})
 
 
-def get_imported_folders_choices(permission: str) -> list:
+def get_imported_folders_choices(permission: Optional[str]) -> list:
     """
     create list of tuples (folders name) based on api response
     ex:[('folder_one', 'folder_one'), ('folder_two', 'folder_two')]
@@ -44,7 +49,7 @@ def get_files_in_folder_from_api(folder: str) -> dict:
     try:
         content = obj.get_files(folder)
         return content
-    except requests.exceptions.HTTPError as e:
+    except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
         raise ApiException
 
 
@@ -76,3 +81,8 @@ class FolderList:
             if len(item.get("children")) != 0:
                 self.folder_collector(lst=item.get("children"))
         return self.folders_lst
+
+
+def get_str_from_encoded64_object(content: bytes) -> str:
+    """return string as a result of decoding (base64) byte object"""
+    return base64.b64encode(content).decode("utf-8")

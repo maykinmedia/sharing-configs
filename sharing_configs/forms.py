@@ -20,6 +20,7 @@ class FolderForm(forms.Form):
 
         folder_list = []
         try:
+
             folder_list = get_imported_folders_choices(self.permission)
             if len(folder_list) > 0:
                 folder_list.insert(0, (None, "Choose a folder"))
@@ -37,7 +38,6 @@ class FolderForm(forms.Form):
 class ImportForm(FolderForm):
     """Provide form  with a list of readable folders"""
 
-    permission = "read"
     file_name = forms.CharField(
         label=_("File name"),
         widget=forms.Select,
