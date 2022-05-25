@@ -184,3 +184,21 @@ class TestImportMixinRequestsMock(TestCase):
         resp = self.client_api.import_data(self.folder, self.filename)
         self.assertTrue(mock_get.called)
         self.assertEqual(resp, return_value)
+
+    @patch("sharing_configs.client_util.requests.get")
+    def test_query_params_list_folders_for_import(self, mock_get):
+        """no permissions in query params to get list of available folders in import"""
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.headers = {
+            "content-type": "application/json",
+            "authorization": self.config_object.api_key,
+        }
+        url = self.client_api.get_list_folders_url()
+        resp = self.client_api.get_folders(permission=None)
+        mock_get.assert_called_once_with(
+            url=url,
+            headers={
+                "content-type": "application/json",
+                "authorization": self.config_object.api_key,
+            },
+        )

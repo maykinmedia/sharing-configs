@@ -94,3 +94,22 @@ class TestExportMixinPatch(TestCase):
         initial_from_form = resp.context["form"]["file_name"].value()
         self.assertEqual(resp.context["form"].is_bound, False)
         self.assertEqual(initial_for_filename["file_name"], initial_from_form)
+
+    @patch("sharing_configs.client_util.requests.get")
+    def test_query_params_requesting_list_folders_for_export(self, mock_get):
+        """permissions in query params present to get list of available folders in export"""
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.headers = {
+            "content-type": "application/json",
+            "authorization": self.config_object.api_key,
+        }
+        url = self.client_api.get_list_folders_url()
+        resp = self.client_api.get_folders(permission="write")
+        mock_get.assert_called_once_with(
+            url=url,
+            headers={
+                "content-type": "application/json",
+                "authorization": self.config_object.api_key,
+            },
+            params="write",
+        )

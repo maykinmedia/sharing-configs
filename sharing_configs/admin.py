@@ -84,9 +84,9 @@ class SharingConfigsExportMixin:
                             kwargs={"object_id": obj.id},
                         )
                     )
-                except ApiException as exc:
+                except ApiException:
                     msg = format_html(
-                        _("Export of object failed: {e}", e=exc),
+                        _("Export of object failed"),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 
@@ -196,9 +196,9 @@ class SharingConfigsImportMixin:
                     self.message_user(request, msg, level=messages.SUCCESS)
                     return redirect(reverse(main_url))
 
-                except ApiException as exc:
+                except ApiException:
                     msg = format_html(
-                        _("Import of object failed: {e}", e=exc),
+                        _("Import of object failed"),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 
