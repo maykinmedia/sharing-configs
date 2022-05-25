@@ -109,7 +109,7 @@ class TestExportMixinPatch(TestCase):
             url=url,
             headers={
                 "content-type": "application/json",
-                "authorization": self.config_object.api_key,
+                "authorization": f"Token {self.config_object.api_key}",
             },
             params="write",
         )
