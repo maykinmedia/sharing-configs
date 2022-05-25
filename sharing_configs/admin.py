@@ -1,10 +1,6 @@
-import base64
-
 from django.contrib import admin, messages
-from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.template import Context
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -75,7 +71,7 @@ class SharingConfigsExportMixin:
                 obj_client = SharingConfigsClient()
                 try:
                     resp = obj_client.export(folder, data)
-                    # what to do with this returned by api data  {"download_url": "http://example.com","filename": "string"} if everything is Ok?
+                    # TODO: what to do with resp at this point
                     msg = format_html(
                         _("The object {object} has been exported successfully"),
                         object=obj,
@@ -87,9 +83,9 @@ class SharingConfigsExportMixin:
                             kwargs={"object_id": obj.id},
                         )
                     )
-                except ApiException as e:
+                except ApiException as exc:
                     msg = format_html(
-                        _(f"Export of object failed: {e}"),
+                        _("Export of object failed: {e}", e=exc),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 
@@ -188,19 +184,20 @@ class SharingConfigsImportMixin:
             if form.is_valid():
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
-                obj = SharingConfigsClient()
+                obj_client = SharingConfigsClient()
                 try:
-                    content = obj.import_data(folder, filename)
+                    content = obj_client.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
-                        _(f"The (file) object {obj} has been imported successfully!"),
+                        _("The (file) object {object} has been imported successfully!"),
+                        object=obj,
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)
                     return redirect(reverse(main_url))
 
-                except ApiException as e:
+                except ApiException as exc:
                     msg = format_html(
-                        _(f"Import of object failed: {e}"),
+                        _("Import of object failed: {e}", e=exc),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 

@@ -110,3 +110,4 @@ venv.bak/
 
 mock_error.py
 mock_data
+sharing_configs.db

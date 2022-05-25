@@ -39,6 +39,7 @@ class SharingConfigsClient:
         """
         expect path required param folder
         """
+
         resp = requests.post(
             url=self.get_export_url(folder), headers=self.headers, json=data
         )
@@ -75,7 +76,7 @@ class SharingConfigsClient:
         try:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException({"error": "No folders"})
+            raise ApiException({"error": "No folders available"})
 
         return resp.json()
 
@@ -88,5 +89,5 @@ class SharingConfigsClient:
         try:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException("No files available")
+            raise ApiException(f"No files available. {exc}")
         return resp.json()
