@@ -99,6 +99,18 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(file_field.required, True)
         self.assertEqual(err_msg, "This field is required.")
 
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
+    def test_import_valid_form(self, mock_import, get_mock_data_folders):
+        """if import form valid success response and redirect to the same import url"""
+        mock_import.return_value = b"some-words"
+        get_mock_data_folders.return_value = get_mock_folders("import")
+        url = reverse("admin:auth_user_import")
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        resp = self.client.post(url, data=data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, url, status_code=302, target_status_code=200)
+
 
 class TestImportMixinRequestsMock(TestCase):
     """Test import mocking module 'requests' on success and failure in util functions"""
@@ -162,18 +174,6 @@ class TestImportMixinRequestsMock(TestCase):
 
             with self.assertRaises(ApiException):
                 self.client_api.get_files(folder="myfolder")
-
-    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
-    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
-    def test_import_valid_form(self, mock_import, get_mock_data_folders):
-        """if import form valid success response and redirect to the same import url"""
-        mock_import.return_value = b"some-words"
-        get_mock_data_folders.return_value = get_mock_folders("import")
-        url = reverse("admin:auth_user_import")
-        data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        resp = self.client.post(url, data=data)
-        self.assertEqual(resp.status_code, 302)
-        self.assertRedirects(resp, url, status_code=302, target_status_code=200)
 
     @requests_mock.Mocker()
     def test_ok_request_get_import_data(self, mock_get):

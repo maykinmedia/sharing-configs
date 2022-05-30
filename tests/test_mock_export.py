@@ -113,3 +113,17 @@ class TestExportMixinPatch(TestCase):
             },
             params="write",
         )
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    def test_fail_export_form_without_file(self, get_mock_data):
+        """if file name not in data, form with error message rendered in a template"""
+        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
+        get_mock_data.return_value = get_mock_folders("export")
+        data = {"folder": "folder_one", "file_name": ""}
+        resp = self.client.post(url, data=data)
+        form = resp.context["form"]
+        file_field = resp.context["form"].fields["file_name"]
+        err_msg = file_field.error_messages.get("required", None)
+        self.assertEqual(form.is_bound, True)
+        self.assertEqual(file_field.required, True)
+        self.assertEqual(err_msg, "This field is required.")
