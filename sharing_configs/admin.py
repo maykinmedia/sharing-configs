@@ -109,16 +109,16 @@ class SharingConfigsExportMixin:
         else:
             form = self.sharing_configs_export_form(initial=initial)
 
-        return render(
-            request,
-            self.change_form_export_template,
-            {
-                "object": obj,
-                "form": form,
-                "extra_context": extra_context,
-                "opts": obj._meta,
-            },
-        )
+            return render(
+                request,
+                self.change_form_export_template,
+                {
+                    "object": obj,
+                    "form": form,
+                    "extra_context": extra_context,
+                    "opts": obj._meta,
+                },
+            )
 
     def get_urls(self):
         urls = super().get_urls()
