@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 from unittest.mock import patch
 from urllib.parse import urljoin
@@ -212,11 +213,13 @@ class TestImportMixinRequestsMock(TestCase):
         )
 
     @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
-    def test_network_problem_import(self, mock_import_data):
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    def test_network_problem_import(self, mock_import_data, mocked_folders):
         """if connection problem occures a generic error message displayed on import template"""
-        mock_import_data.side_effect = requests.exceptions.ConnectionError
-        url = reverse("admin:auth_user_import")
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        mock_import_data.side_effect = requests.exceptions.ConnectionError
+        mocked_folders.return_value = {}
+        url = reverse("admin:auth_user_import")
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
         self.assertEqual(str(messages[0]), "Something went wrong during object import")

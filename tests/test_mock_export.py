@@ -136,11 +136,13 @@ class TestExportMixinPatch(TestCase):
         get_mock_data.assert_called_once_with("write")
 
     @patch("sharing_configs.client_util.SharingConfigsClient.export")
-    def test_network_problem_export(self, mock_export):
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    def test_network_problem_export2(self, mock_export, mocked_folders):
         """if connection problem occures a generic error message displayed on export template"""
-        mock_export.side_effect = requests.exceptions.ConnectionError
-        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        mock_export.side_effect = requests.exceptions.ConnectionError
+        mocked_folders.side_effect = requests.exceptions.ConnectionError
+        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
         self.assertTrue(messages)
