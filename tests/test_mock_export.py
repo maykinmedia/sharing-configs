@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 from django.test import TestCase
 from django.urls import reverse
 
+import requests
 import requests_mock
 
 from sharing_configs.client_util import SharingConfigsClient
@@ -50,7 +51,7 @@ class TestExportMixinPatch(TestCase):
             with self.assertRaises(ApiException):
                 self.client_api.get_folders(permission=None)
 
-    def test_fail_request_post(self):
+    def test_fail_500_request_post(self):
         """mocking api failure during export of (file)object"""
         folder = "folder_bar"
         url = self.client_api.get_export_url(folder=folder)
@@ -69,7 +70,8 @@ class TestExportMixinPatch(TestCase):
     @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     @patch("sharing_configs.client_util.SharingConfigsClient.export")
     def test_export_valid_form(self, mock_export, get_mock_data_folders):
-        """if export form valid response success and re-direct to the same export url"""
+        """if export form valid response success and re-direct to the same export url;
+        (mock)get_folders method also called by re-direct to supply template dropdown-menu with folders"""
         mock_export.return_value = {
             "download_url": "http://example.com",
             "filename": "string",
@@ -80,6 +82,8 @@ class TestExportMixinPatch(TestCase):
         resp = self.client.post(url, data=data)
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, url, status_code=302, target_status_code=200)
+        get_mock_data_folders.assert_called_with("write")
+        self.assertEqual(get_mock_data_folders.call_count, 2)
 
     @patch("sharing_configs.utils.get_folders_from_api")
     def test_export_form_intials(self, get_mock_data):
@@ -94,6 +98,8 @@ class TestExportMixinPatch(TestCase):
         initial_from_form = resp.context["form"]["file_name"].value()
         self.assertEqual(resp.context["form"].is_bound, False)
         self.assertEqual(initial_for_filename["file_name"], initial_from_form)
+        get_mock_data.assert_called_with("write")
+        self.assertEqual(get_mock_data.call_count, 1)
 
     @patch("sharing_configs.client_util.requests.get")
     def test_query_params_requesting_list_folders_for_export(self, mock_get):
@@ -127,3 +133,18 @@ class TestExportMixinPatch(TestCase):
         self.assertEqual(form.is_bound, True)
         self.assertEqual(file_field.required, True)
         self.assertEqual(err_msg, "This field is required.")
+        get_mock_data.assert_called_once_with("write")
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.export")
+    def test_network_problem_export(self, mock_export):
+        """if connection problem occures a generic error message displayed on export template"""
+        mock_export.side_effect = requests.exceptions.ConnectionError
+        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        resp = self.client.post(url, data=data)
+        messages = list(resp.context["messages"])
+        self.assertTrue(messages)
+        self.assertEqual(
+            str(messages[0]), f"The object {self.user} has been not exported"
+        )
+        self.assertTemplateUsed("admin/export.html")

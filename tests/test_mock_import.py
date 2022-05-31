@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+import requests
 import requests_mock
 
 from sharing_configs.client_util import SharingConfigsClient
@@ -81,15 +82,17 @@ class TestImportMixinPatchFuncs(TestCase):
         get_mock_data.return_value = get_mock_folders("import")
         url = reverse("admin:auth_user_import")
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        resp = self.client.get(url, json=data)
+        resp = self.client.post(url, json=data)
         self.assertEqual(resp.status_code, HTTPStatus.OK)
+        get_mock_data.assert_called_once_with(None)
 
-    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch(
+        "sharing_configs.client_util.SharingConfigsClient.get_folders",
+        return_value=get_mock_folders("import"),
+    )
     def test_fail_import_form_without_file(self, get_mock_data):
         """if file name not in data, form with error message rendered in a template"""
         url = reverse("admin:auth_user_import")
-        get_mock_data.return_value = get_mock_folders("import")
-
         data = {"folder": "folder_one", "file_name": ""}
         resp = self.client.post(url, data=data)
         form = resp.context["form"]
@@ -98,11 +101,14 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(form.is_bound, True)
         self.assertEqual(file_field.required, True)
         self.assertEqual(err_msg, "This field is required.")
+        get_mock_data.assert_called_once_with(None)
 
     @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
     def test_import_valid_form(self, mock_import, get_mock_data_folders):
-        """if import form valid success response and redirect to the same import url"""
+        """if import form valid success response and redirect to the same import url;
+        (mock)get_folders method also called by re-direct to supply template dropdown-menu with folders
+        """
         mock_import.return_value = b"some-words"
         get_mock_data_folders.return_value = get_mock_folders("import")
         url = reverse("admin:auth_user_import")
@@ -110,6 +116,8 @@ class TestImportMixinPatchFuncs(TestCase):
         resp = self.client.post(url, data=data)
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, url, status_code=302, target_status_code=200)
+        get_mock_data_folders.assert_called_with(None)
+        self.assertEqual(get_mock_data_folders.call_count, 2)
 
 
 class TestImportMixinRequestsMock(TestCase):
@@ -155,7 +163,7 @@ class TestImportMixinRequestsMock(TestCase):
             with self.assertRaises(ApiException):
                 self.client_api.get_folders(permission=None)
 
-    def test_failed_fetch_files_for_import(self):
+    def test_failed_404_fetch_files_for_import(self):
         """Client makes incorrect request to fetch list of files"""
 
         url = self.client_api.get_folder_files_url(folder="myfolder")
@@ -165,7 +173,7 @@ class TestImportMixinRequestsMock(TestCase):
             with self.assertRaises(ApiException):
                 self.client_api.get_files(folder="myfolder")
 
-    def test_failed_fetch_files_for_import(self):
+    def test_failed_500_fetch_files_for_import(self):
         """API call failed to fetch list of files"""
 
         url = self.client_api.get_folder_files_url(folder="myfolder")
@@ -202,3 +210,15 @@ class TestImportMixinRequestsMock(TestCase):
                 "authorization": f"Token {self.config_object.api_key}",
             },
         )
+
+    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
+    def test_network_problem_import(self, mock_import_data):
+        """if connection problem occures a generic error message displayed on import template"""
+        mock_import_data.side_effect = requests.exceptions.ConnectionError
+        url = reverse("admin:auth_user_import")
+        data = {"folder": "folder_one", "file_name": "zoo.txt"}
+        resp = self.client.post(url, data=data)
+        messages = list(resp.context["messages"])
+        self.assertEqual(str(messages[0]), "Something went wrong during object import")
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed("admin/import.html")
