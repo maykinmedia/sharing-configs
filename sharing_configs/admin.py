@@ -55,8 +55,10 @@ class SharingConfigsExportMixin:
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj}.json"}
         if request.method == "POST":
+
             form = self.get_sharing_configs_export_form(request.POST, initial=initial)
             if form.is_valid():
+
                 author = request.user.username
                 byte_content = self.get_sharing_configs_export_data(obj)
                 str_content_64_encoded = get_str_from_encoded64_object(byte_content)
@@ -181,12 +183,15 @@ class SharingConfigsImportMixin:
         extra_context["main_url"] = main_url
         extra_context["ajax_url"] = ajax_url
         if request.method == "POST":
+
             form = self.get_sharing_configs_import_form(request.POST)
             if form.is_valid():
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
+
                 obj_client = SharingConfigsClient()
                 try:
+
                     content = obj_client.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
@@ -197,12 +202,14 @@ class SharingConfigsImportMixin:
                     return redirect(reverse(main_url))
 
                 except ApiException:
+
                     msg = format_html(
                         _("Import of object failed"),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 
             if not form.is_valid():
+
                 msg = format_html(
                     _("Something went wrong during object import"),
                 )

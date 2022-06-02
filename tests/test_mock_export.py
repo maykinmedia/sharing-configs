@@ -85,7 +85,7 @@ class TestExportMixinPatch(TestCase):
         get_mock_data_folders.assert_called_with("write")
         self.assertEqual(get_mock_data_folders.call_count, 2)
 
-    @patch("sharing_configs.utils.get_folders_from_api")
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     def test_export_form_intials(self, get_mock_data):
         """
         On request GET  export form filename field  should be pre-populated
@@ -135,18 +135,17 @@ class TestExportMixinPatch(TestCase):
         self.assertEqual(err_msg, "This field is required.")
         get_mock_data.assert_called_once_with("write")
 
-    @patch("sharing_configs.client_util.SharingConfigsClient.export")
     @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
-    def test_network_problem_export2(self, mock_export, mocked_folders):
+    @patch("sharing_configs.client_util.requests.post")
+    def test_network_problem_export(self, mock_export_data, mocked_folders):
         """if connection problem occures a generic error message displayed on export template"""
+
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        mock_export.side_effect = requests.exceptions.ConnectionError
-        mocked_folders.side_effect = requests.exceptions.ConnectionError
+        mock_export_data.side_effect = requests.exceptions.ConnectionError
+        mocked_folders.return_value = get_mock_folders(mode="export")
         url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
-        self.assertTrue(messages)
-        self.assertEqual(
-            str(messages[0]), f"The object {self.user} has been not exported"
-        )
-        self.assertTemplateUsed("admin/export.html")
+        self.assertTrue(mock_export_data.called)
+        self.assertEqual(str(messages[0]), "Export of object failed")
+        self.assertTemplateNotUsed("admin.export.html")

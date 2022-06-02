@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 from unittest.mock import patch
 from urllib.parse import urljoin
@@ -26,7 +25,7 @@ class TestImportMixinPatchFuncs(TestCase):
         self.user = StaffUserFactory()
         self.client.force_login(self.user)
 
-    @patch("sharing_configs.utils.get_folders_from_api")
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
     def test_call_external_api_from_form(self, get_mock_data):
         """
         On request GET "folder" form field  will be pre-populated
@@ -53,7 +52,7 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(second_folder_name, "folder_two")
         self.assertTemplateUsed(resp, "sharing_configs/admin/import.html")
 
-    @patch("sharing_configs.utils.get_files_in_folder_from_api")
+    @patch("sharing_configs.client_util.SharingConfigsClient.get_files")
     def test_ajax_correct_data(self, get_mock_data):
         """utils function returns correct list of files for a given folder"""
         get_mock_data.return_value = {
@@ -212,16 +211,17 @@ class TestImportMixinRequestsMock(TestCase):
             },
         )
 
-    @patch("sharing_configs.client_util.SharingConfigsClient.import_data")
     @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
+    @patch("sharing_configs.client_util.requests.get")
     def test_network_problem_import(self, mock_import_data, mocked_folders):
         """if connection problem occures a generic error message displayed on import template"""
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
         mock_import_data.side_effect = requests.exceptions.ConnectionError
-        mocked_folders.return_value = {}
+        mocked_folders.return_value = get_mock_folders(mode="import")
         url = reverse("admin:auth_user_import")
         resp = self.client.post(url, data=data)
+        self.assertTrue(mock_import_data.called)
         messages = list(resp.context["messages"])
-        self.assertEqual(str(messages[0]), "Something went wrong during object import")
-        self.assertEqual(resp.status_code, 200)
-        self.assertTemplateUsed("admin/import.html")
+        self.assertTrue(mock_import_data.called)
+        self.assertEqual(str(messages[0]), "Import of object failed")
+        self.assertTemplateNotUsed("admin.import.html")
