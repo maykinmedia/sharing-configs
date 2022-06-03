@@ -206,7 +206,9 @@ class TestExportMixinPatch(TestCase):
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
-        self.assertEqual(str(messages[0]), f"The object {self.user} has been not exported")
+        self.assertEqual(
+            str(messages[0]), f"The object {self.user} has been not exported"
+        )
         self.assertTrue(mocked_folders.called)
         with self.assertRaisesMessage(ApiException, "No folders available"):
             self.client_api.get_folders(permission="write")

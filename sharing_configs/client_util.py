@@ -42,7 +42,9 @@ class SharingConfigsClient:
         """
 
         try:
-            resp = requests.post(url=self.get_export_url(folder), headers=self.headers, json=data)
+            resp = requests.post(
+                url=self.get_export_url(folder), headers=self.headers, json=data
+            )
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
             raise ApiException("Error during export of object")
@@ -53,7 +55,9 @@ class SharingConfigsClient:
 
         try:
 
-            resp = requests.get(url=self.get_import_url(folder, filename), headers=self.headers)
+            resp = requests.get(
+                url=self.get_import_url(folder, filename), headers=self.headers
+            )
 
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
@@ -78,7 +82,9 @@ class SharingConfigsClient:
 
         else:
             try:
-                resp = requests.get(url=self.get_list_folders_url(), headers=self.headers)
+                resp = requests.get(
+                    url=self.get_list_folders_url(), headers=self.headers
+                )
                 resp.raise_for_status()
 
             except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:

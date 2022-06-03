@@ -89,7 +89,7 @@ class SharingConfigsExportMixin:
                     )
                 except ApiException:
                     msg = format_html(
-                        _(f"Export of object failed: {e}"),
+                        _("Export of object failed"),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 
