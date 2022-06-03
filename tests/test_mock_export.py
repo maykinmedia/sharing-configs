@@ -2,6 +2,7 @@ import json
 from unittest.mock import patch
 from urllib.parse import urljoin
 
+from django.contrib.auth import get_user_model
 from django.forms.models import model_to_dict
 from django.test import TestCase
 from django.urls import reverse
@@ -13,8 +14,10 @@ from sharing_configs.client_util import SharingConfigsClient
 from sharing_configs.exceptions import ApiException
 from sharing_configs.utils import get_str_from_encoded64_object
 
-from .factories import SharingConfigsConfigFactory, StaffUserFactory
+from .factories import SharingConfigsConfigFactory, StaffUserFactory, SuperUserFactory
 from .mock_data_api.mock_util import export_api_response, get_mock_folders
+
+User = get_user_model()
 
 
 class TestExportMixinPatch(TestCase):
@@ -220,3 +223,21 @@ class TestExportMixinPatch(TestCase):
             },
             params="write",
         )
+
+
+class TestExportMixinUI(TestCase):
+    """Test export UI"""
+
+    def setUp(self) -> None:
+        self.user = SuperUserFactory()
+        self.client.force_login(self.user)
+        info = (User._meta.app_label, User._meta.model_name)
+        self.url = reverse("admin:%s_%s_change" % info, args=(self.user.pk,))
+
+    def test_button_export_presensce(self):
+        """check if user detail page has a button 'export' with a link to export page"""
+        resp = self.client.get(self.url)
+        elem = f'<a href="/admin/auth/user/{self.user.id}/export/" class="historylink">Export to Community</a>'
+        self.assertTemplateUsed(resp, "sharing_configs/admin/change_form.html")
+        self.assertEqual(200, resp.status_code)
+        self.assertContains(resp, elem)

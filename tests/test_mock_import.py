@@ -12,7 +12,7 @@ import requests_mock
 from sharing_configs.client_util import SharingConfigsClient
 from sharing_configs.exceptions import ApiException
 
-from .factories import SharingConfigsConfigFactory, StaffUserFactory
+from .factories import SharingConfigsConfigFactory, StaffUserFactory, SuperUserFactory
 from .mock_data_api.mock_util import get_mock_folders
 
 User = get_user_model()
@@ -77,16 +77,6 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(data, ["folder_one.json", "folder_one.html"])
         self.assertEqual(2, len(data))
         get_mock_data.assert_called_once_with("folder_one")
-
-    @patch("sharing_configs.client_util.SharingConfigsClient.get_folders")
-    def test_import_valid_form(self, get_mock_data):
-        """success response if import form valid"""
-        get_mock_data.return_value = get_mock_folders("import")
-        url = reverse("admin:auth_user_import")
-        data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        resp = self.client.post(url, json=data)
-        self.assertEqual(resp.status_code, HTTPStatus.OK)
-        get_mock_data.assert_called_once_with(None)
 
     @patch(
         "sharing_configs.client_util.SharingConfigsClient.get_folders",
@@ -259,3 +249,24 @@ class TestImportMixinRequestsMock(TestCase):
                 "authorization": f"Token {self.config_object.api_key}",
             },
         )
+
+
+class TestImportMixinUI(TestCase):
+    """Test import UI"""
+
+    def setUp(self) -> None:
+        self.user = SuperUserFactory()
+        self.client.force_login(self.user)
+        info = (User._meta.app_label, User._meta.model_name)
+        self.url = reverse("admin:%s_%s_changelist" % info)
+
+    def test_button_import_presensce(self):
+        """check if user detail page has a button 'import' with a link to import page"""
+        resp = self.client.get(self.url)
+        elem = """<a href="/admin/auth/user/import/" class="addlink ">
+            Import from Community
+        </a>"""
+
+        self.assertTemplateUsed(resp, "sharing_configs/admin/change_list.html")
+        self.assertEqual(200, resp.status_code)
+        self.assertContains(resp, elem)
