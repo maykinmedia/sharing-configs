@@ -110,3 +110,8 @@ venv.bak/
 
 mock_error.py
 mock_data
+manage.py
+sharing_configs/migrations/0002_alter_sharingconfigsconfig_id.py
+sharing_configs/migrations/0003_alter_sharingconfigsconfig_id.py
+sharing_configs/migrations/0004_alter_sharingconfigsconfig_id.py
+testapp/sharing_configs.db
