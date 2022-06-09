@@ -9,5 +9,6 @@ class TestUtils(TestCase):
         64-encoding of a byte-like object"""
         content = b"example_file.txt"
         result_string = get_str_from_encoded64_object(content)
+
         self.assertEqual(result_string, "ZXhhbXBsZV9maWxlLnR4dA==")
         self.assertIsInstance(result_string, str)

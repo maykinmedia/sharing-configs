@@ -15,6 +15,7 @@ class TestExportMixinNotAuthUser(TestCase):
         """redirect to login; if login OK redirect to prev page"""
         resp = self.client.get(self.url, follow=True)
         next_url, status_code = resp.redirect_chain[-1]
+
         self.assertEqual(
             next_url, f"/admin/login/?next=/admin/auth/user/{self.user.id}/export/"
         )
@@ -31,6 +32,7 @@ class TestExportMixinAuthUserNotStaff(TestCase):
 
     def test_get_request_export_mixin(self):
         resp = self.client.get(self.url, follow=True)
+
         self.assertEqual(
             resp.redirect_chain,
             [(f"/admin/login/?next=/admin/auth/user/{self.user.id}/export/", 302)],
@@ -46,6 +48,7 @@ class TestImportMixinNotAuthStaffUser(TestCase):
 
     def test_get_request_import_mixin(self):
         resp = self.client.get(self.url, follow=True)
+
         self.assertEqual(
             resp.redirect_chain, [("/admin/login/?next=/admin/auth/user/import/", 302)]
         )
@@ -61,6 +64,7 @@ class TestImportMixinAuthUserNotStaff(TestCase):
 
     def test_get_request_import_mixin(self):
         resp = self.client.get(self.url, follow=True)
+
         self.assertEqual(
             resp.redirect_chain, [("/admin/login/?next=/admin/auth/user/import/", 302)]
         )

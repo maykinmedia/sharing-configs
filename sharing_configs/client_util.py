@@ -69,26 +69,20 @@ class SharingConfigsClient:
         """
         return dict with attr "results" containing list of folders
         """
-        if permission is not None:
-            try:
+        try:
+            if permission is not None:
                 resp = requests.get(
                     url=self.get_list_folders_url(),
                     headers=self.headers,
                     params=permission,
                 )
-                resp.raise_for_status()
-            except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-                raise ApiException({"error": "No folders available"})
-
-        else:
-            try:
+            else:
                 resp = requests.get(
                     url=self.get_list_folders_url(), headers=self.headers
                 )
-                resp.raise_for_status()
-
-            except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-                raise ApiException({"error": "No folders available"})
+            resp.raise_for_status()
+        except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
+            raise ApiException("No folders available")
 
         return resp.json()
 
@@ -101,5 +95,5 @@ class SharingConfigsClient:
         try:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException(f"No files available. {exc}")
+            raise ApiException("No folders available")
         return resp.json()

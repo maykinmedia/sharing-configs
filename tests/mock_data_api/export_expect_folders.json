@@ -5,7 +5,12 @@
     "results": [
         {
             "name": "folder_one",
-            "children": [],
+            "children": [
+                {
+                    "name": "sub-folder-1.1",
+                    "children": []
+                }
+            ],
             "permission": "write"
         },
         {
