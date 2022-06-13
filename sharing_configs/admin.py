@@ -184,15 +184,13 @@ class SharingConfigsImportMixin:
         extra_context["main_url"] = main_url
         extra_context["ajax_url"] = ajax_url
         if request.method == "POST":
-
             form = self.get_sharing_configs_import_form(request.POST)
             if form.is_valid():
+
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
-
                 obj_client = SharingConfigsClient()
                 try:
-
                     content = obj_client.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(

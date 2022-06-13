@@ -13,8 +13,14 @@ import requests_mock
 from sharing_configs.client_util import SharingConfigsClient
 from sharing_configs.exceptions import ApiException
 from sharing_configs.utils import get_str_from_encoded64_object
+from testapp.models import Configuration, Theme
 
-from .factories import SharingConfigsConfigFactory, StaffUserFactory, SuperUserFactory
+from .factories import (
+    SharingConfigsConfigFactory,
+    StaffUserFactory,
+    SuperUserFactory,
+    ThemeFactory,
+)
 from .mock_data_api.mock_util import export_api_response, get_mock_folders
 
 User = get_user_model()
@@ -28,6 +34,8 @@ class TestExportMixinPatch(TestCase):
         self.client.force_login(self.user)
         self.config_object = SharingConfigsConfigFactory()
         self.client_api = SharingConfigsClient()
+        self.theme = ThemeFactory()
+        self.configuration = Configuration.objects.create(theme=self.theme)
         self.url = urljoin(self.config_object.api_endpoint, self.config_object.label)
 
     @requests_mock.Mocker()
@@ -89,10 +97,11 @@ class TestExportMixinPatch(TestCase):
             "download_url": "http://example.com",
             "filename": "string",
         }
-        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
-        user_dict = model_to_dict(self.user)
-        dump_json_user = json.dumps(user_dict, sort_keys=True, default=str)
-        byte_user_content = dump_json_user.encode("utf-8")
+        url = reverse("admin:testapp_theme_export", kwargs={"object_id": self.theme.id})
+        theme_dict = model_to_dict(self.theme)
+        theme_dict.pop("id")
+        dump_json_theme = json.dumps(theme_dict, sort_keys=True, default=str)
+        byte_user_content = dump_json_theme.encode("utf-8")
         content = get_str_from_encoded64_object(byte_user_content)
 
         resp = self.client.post(url, data=data)
@@ -120,15 +129,15 @@ class TestExportMixinPatch(TestCase):
 
     @patch(
         "sharing_configs.client_util.SharingConfigsClient.get_folders",
-        return_value=get_mock_folders("import"),
+        return_value=get_mock_folders("export"),
     )
     def test_export_form_intials(self, get_mock_data):
         """
         On request GET  export form filename field  should be pre-populated
         with initial data == string representaion of an object
         """
-        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
-        initial_for_filename = {"file_name": f"{self.user}.json"}
+        url = reverse("admin:testapp_theme_export", kwargs={"object_id": self.theme.id})
+        initial_for_filename = {"file_name": f"{self.theme}.json"}
 
         resp = self.client.get(url)
         initial_from_form = resp.context["form"]["file_name"].value()
@@ -165,7 +174,7 @@ class TestExportMixinPatch(TestCase):
     )
     def test_fail_export_form_without_file(self, get_mock_data):
         """if file name not in data, form with error message rendered in a template"""
-        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
+        url = reverse("admin:testapp_theme_export", kwargs={"object_id": self.theme.id})
         data = {"folder": "folder_one", "file_name": ""}
 
         resp = self.client.post(url, data=data)
@@ -190,13 +199,13 @@ class TestExportMixinPatch(TestCase):
         """if connection problem occures a generic error message displayed on export template"""
 
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
-        # prepare user object for export
-        user_dict = model_to_dict(self.user)
-        dump_json_user = json.dumps(user_dict, sort_keys=True, default=str)
-        byte_user_content = dump_json_user.encode("utf-8")
-        content = get_str_from_encoded64_object(byte_user_content)
-
+        url = reverse("admin:testapp_theme_export", kwargs={"object_id": self.theme.id})
+        # prepare object for export
+        theme_dict = model_to_dict(self.theme)
+        theme_dict.pop("id")
+        dump_json_theme = json.dumps(theme_dict, sort_keys=True, default=str)
+        byte_theme_content = dump_json_theme.encode("utf-8")
+        content = get_str_from_encoded64_object(byte_theme_content)
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
 
@@ -232,15 +241,13 @@ class TestExportMixinPatch(TestCase):
         """if connection problem occures not only during export data but also during fetching folders a generic error message displayed on export template"""
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
         url_list_folders = self.client_api.get_list_folders_url()
-        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
+        url = reverse("admin:testapp_theme_export", kwargs={"object_id": self.theme.id})
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
 
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
 
-        self.assertEqual(
-            str(messages[0]), f"The object {self.user} has been not exported"
-        )
+        self.assertEqual(str(messages[0]), f"The object {self.theme} has been not exported")
         self.assertTrue(mocked_folders.called)
         with self.assertRaisesMessage(ApiException, "No folders available"):
             self.client_api.get_folders(permission="write")
@@ -260,7 +267,7 @@ class TestExportMixinPatch(TestCase):
     )
     def test_expected_choices_export_form(self, get_mock_data):
         """on request GET export form should provide expected list of folders in its dropdown menu"""
-        url = reverse("admin:auth_user_export", kwargs={"object_id": self.user.id})
+        url = reverse("admin:testapp_theme_export", kwargs={"object_id": self.theme.id})
         data = {"folder": "folder_one", "file_name": ""}
 
         resp = self.client.post(url, data=data)
@@ -295,12 +302,14 @@ class TestExportMixinUI(TestCase):
     def setUp(self) -> None:
         self.user = SuperUserFactory()
         self.client.force_login(self.user)
-        info = (User._meta.app_label, User._meta.model_name)
-        self.url = reverse("admin:%s_%s_change" % info, args=(self.user.pk,))
+        info = (Theme._meta.app_label, Theme._meta.model_name)
+        self.theme = ThemeFactory()
+        self.configuration = Configuration.objects.create(theme=self.theme)
+        self.url = reverse("admin:%s_%s_change" % info, args=(self.theme.pk,))
 
     def test_button_export_presence(self):
         """check if user detail page has a button 'export' with a link to export page"""
-        elem = f'<a href="/admin/auth/user/{self.user.id}/export/" class="historylink">Export to Community</a>'
+        elem = f'<a href="/admin/testapp/theme/{self.theme.id}/export/" class="historylink">Export to Community</a>'
 
         resp = self.client.get(self.url)
 
