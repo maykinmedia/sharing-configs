@@ -1,7 +1,6 @@
 from django.contrib import admin, messages
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.template import Context
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -35,7 +34,8 @@ class SharingConfigsExportMixin:
 
     def get_sharing_configs_export_data(self, obj: object) -> bytes:
         """
-        Derived class should override this method for export converting model object into bytes
+        The developer should override this method for export converting model object into bytes
+        that will be futher base64 encoded before sent to the API
 
         """
         raise NotImplemented
@@ -75,7 +75,6 @@ class SharingConfigsExportMixin:
                 obj_client = SharingConfigsClient()
                 try:
                     resp = obj_client.export(folder, data)
-                    # TODO: what to do with resp at this point
                     msg = format_html(
                         _("The object {object} has been exported successfully"),
                         object=obj,
@@ -155,7 +154,8 @@ class SharingConfigsImportMixin:
 
     def get_sharing_configs_import_data(self, content: bytes) -> object:
         """
-        Derived class should override this method converting content in bytes  to a model object;
+        The developer should override this method decoding bytes and
+        creating or updating an model object from the content data.
         """
         raise NotImplemented
 

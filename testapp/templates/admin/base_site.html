@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+<html
+    style=" --primary:{{primary}}; --secondary:{{secondary}}; --accent:{{accent}}; --primary_fg:{{primary_fg}}; --selected-row:{{current_model_color}}">
+
+</html>
+{% endblock %}

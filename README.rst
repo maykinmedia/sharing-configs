@@ -88,3 +88,112 @@ the exporting file and override ``get_sharing_configs_export_data`` method
 
 .. _Maykin Media B.V.: https://www.maykinmedia.nl
 .. _Sharing Configs API: https://github.com/maykinmedia/sharing-configs-api.git
+
+Example
+=======
+Simple example for changing color theme in the django admin:
+
+Create two models: Configuration and Theme
+
+.. code-block:: python
+
+    from django.db import models
+    from django.utils.translation import gettext_lazy as _
+    from solo.models import SingletonModel
+
+
+    class Configuration(SingletonModel):
+        """
+        configuration for export/import of color theme in the Django admin
+        """
+
+        theme = models.ForeignKey("Theme", on_delete=models.CASCADE, related_name="theme")
+
+        def __str__(self) -> str:
+            return self.theme.name
+
+
+    class Theme(models.Model):
+        """object to change color theme in Django admin"""
+
+        name = models.CharField(_("theme_name"), max_length=120)
+        primary = models.CharField(_("primary color"), max_length=60)
+        secondary = models.CharField(_("secondary color"), max_length=60)
+        accent = models.CharField(_("accent color"), max_length=60)
+        primary_fg = models.CharField(_("primary_fg"), max_length=60)
+        
+        
+Add two mixins provided by the sharing-configs app to the ThemeAdmin. 
+Thus you will get an interface to export and import ColorTheme objects to and from the API.  
+
+Customize two mixins methods: **get_sharing_configs_export_data** to convert model object to bytes and 
+**get_sharing_configs_import_data** to convert bytes to an object.
+Register both models with the admin site.
+
+
+.. code-block:: python
+
+    import json
+
+    from django.contrib import admin
+    from django.forms.models import model_to_dict
+    from django.shortcuts import get_object_or_404
+
+    from sharing_configs.admin import SharingConfigsExportMixin, SharingConfigsImportMixin
+    from sharing_configs.forms import ExportToForm, ImportForm
+
+    from .models import Configuration, Theme
+
+
+    class ThemeAdmin(SharingConfigsExportMixin, SharingConfigsImportMixin, admin.ModelAdmin):        
+
+        def get_sharing_configs_export_data(self, obj: object) -> bytes:
+            """return  django theme model object as a byte like object"""
+            theme = get_object_or_404(Theme, id=obj.id)
+            theme_dict = model_to_dict(theme)
+            theme_dict.pop("id", None)
+            dump_json_theme = json.dumps(cleaned_theme_dict, sort_keys=True, default=str)        
+            return dump_json_theme.encode("utf-8")
+
+        def get_sharing_configs_import_data(self, content: bytes) -> object:
+            """
+            convert byte string into a dictionary and create a color-theme object;           
+            example api response: b'{"accent": "#f8f8f8", "name": "some-name", "primary": "#ab8585", "primary_fg": "#1a2b3c", "secondary": "#315980"}'
+            """              
+            decoded_content = content.decode("utf-8")
+            theme_dict = json.loads(decoded_content)        
+            return ColorTheme.objects.create(**theme_dict)       
+
+
+Create a ``context_processors.py`` file.  
+Add ``yourapp.context_processors.set_color`` to the list of TEMPLATES context_processors in ``settings.py``
+
+.. code-block:: python
+
+    def set_admin_color(request:object)->dict:
+        """
+        create a dictionary of color variables to pass to the base_site.html Django admin page
+        """
+        conf = Configuration.get_solo()
+        color_theme_obj = Theme.objects.filter(theme=conf).last()
+        primary_color = color_theme_obj.primary
+        secondary_color = color_theme_obj.secondary
+        accent = color_theme_obj.accent
+        primary_fg = color_theme_obj.primary_fg    
+        return {
+            "primary": primary_color,
+            "secondary": secondary_color,            
+            "primary_fg": primary_fg,
+            "accent": accent,
+            
+        }
+Pass created variables to the ``base_site.html`` in the templates.
+.. code-block::
+  {% extends "admin/base_site.html" %}
+    {% block extrastyle %}
+    <html
+        style=" --primary:{{primary}}; --secondary:{{secondary}}; --accent:{{accent}}; --primary_fg:{{primary_fg}};">
+    </html>
+  {% endblock %}
+
+Now you can choose an available color theme via related congiguration object on its admin page.
