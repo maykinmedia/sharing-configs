@@ -23,9 +23,8 @@ class ThemeAdmin(SharingConfigsExportMixin, SharingConfigsImportMixin, admin.Mod
         return dump_json_theme.encode("utf-8")
 
     def get_sharing_configs_import_data(self, content: bytes) -> object:
-        """decode byte string and create an object of Theme model
-        example of content from API: b'{"accent": "#f8f8f8","name": "spring", "primary": "#8d979c", \
-        "primary_fg": "#1a2b3c", "secondary": "#315980"}'
+        """
+        decode byte string and create an object of Theme model
         """
         decoded_content = content.decode("utf-8")
         theme_dict = json.loads(decoded_content)

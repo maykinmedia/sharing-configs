@@ -255,7 +255,7 @@ class TestImportMixinRequestsMock(TestCase):
 
         self.assertTrue(mock_import_data.called)
         self.assertTrue(mock_import_data.called)
-        self.assertEqual(str(messages[0]), "Import of object failed")
+        self.assertEqual(str(messages[0]), "The import of the selected item failed.")
         self.assertTemplateUsed("admin/import.html")
         mock_import_data.assert_called_once_with(
             url=self.client_api.get_import_url("folder_one", "zoo.txt"),
@@ -286,7 +286,9 @@ class TestImportMixinRequestsMock(TestCase):
 
         self.assertEqual(str(messages[0]), "Something went wrong during object import")
         self.assertTrue(mocked_folders.called)
-        with self.assertRaisesMessage(ApiException, "No folders available"):
+        with self.assertRaisesMessage(
+            ApiException, "Could not retrieve any folders due to a connection error."
+        ):
             self.client_api.get_folders(permission=None)
         mocked_folders.assert_called_with(
             url=url_list_folders,

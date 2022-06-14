@@ -189,12 +189,12 @@ class SharingConfigsImportMixin:
 
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
-                obj_client = SharingConfigsClient()
+                client = SharingConfigsClient()
                 try:
-                    content = obj_client.import_data(folder, filename)
+                    content = client.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
-                        _("The (file) object {object} has been imported successfully!"),
+                        _("The item object {object} has been imported successfully!"),
                         object=obj,
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)
@@ -203,7 +203,7 @@ class SharingConfigsImportMixin:
                 except ApiException:
 
                     msg = format_html(
-                        _("Import of object failed"),
+                        _("The import of the selected item failed."),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 

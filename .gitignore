@@ -111,4 +111,5 @@ venv.bak/
 mock_error.py
 mock_data
 manage.py
-testapp/sharing_configs.db
+
+sharing_configs.db

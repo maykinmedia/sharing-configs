@@ -226,7 +226,9 @@ class TestExportMixinPatch(TestCase):
                 "filename": data["file_name"],
             },
         )
-        with self.assertRaisesMessage(ApiException, "Error during export of object"):
+        with self.assertRaisesMessage(
+            ApiException, "Could not export the item due to a connection error."
+        ):
             self.client_api.export("folder_one", data)
 
     @patch(
@@ -249,7 +251,9 @@ class TestExportMixinPatch(TestCase):
 
         self.assertEqual(str(messages[0]), f"The object {self.theme} has been not exported")
         self.assertTrue(mocked_folders.called)
-        with self.assertRaisesMessage(ApiException, "No folders available"):
+        with self.assertRaisesMessage(
+            ApiException, "Could not retrieve any folders due to a connection error."
+        ):
             self.client_api.get_folders(permission="write")
         mocked_folders.assert_called_with(
             url=url_list_folders,
