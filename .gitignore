@@ -112,4 +112,3 @@ mock_error.py
 mock_data
 manage.py
 testapp/sharing_configs.db
-testapp.migrations

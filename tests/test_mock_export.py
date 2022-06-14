@@ -287,6 +287,7 @@ class TestExportMixinPatch(TestCase):
         )
 
         self.assertEqual(form.is_bound, True)
+        self.assertEqual(err_msg, "This field is required.")
 
 
 class TestExportMixinUI(TestCase):
