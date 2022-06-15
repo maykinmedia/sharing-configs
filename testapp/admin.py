@@ -1,4 +1,3 @@
-import base64
 import json
 
 from django.contrib import admin
@@ -21,8 +20,7 @@ class UserAdmin(SharingConfigsExportMixin, SharingConfigsImportMixin, admin.Mode
     sharing_configs_import_form = ImportForm
 
     def get_sharing_configs_export_data(self, obj: object) -> bytes:
-        """return  django user model object as a byte like object"""
-
+        """convert user object into bytes"""
         user = get_object_or_404(User, id=obj.id)
         user_dict = model_to_dict(user)
         dump_json_user = json.dumps(user_dict, sort_keys=True, default=str)

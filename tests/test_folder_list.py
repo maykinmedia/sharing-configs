@@ -20,7 +20,9 @@ class MyFolderCollecorTest(TestCase):
         ]
         expected_list = ["parent-folder1", "sub-folder-1.1", "sub-folder-1.2"]
         folders_search = FolderList()
+
         calc_collection = folders_search.folder_collector(lst_one)
+
         self.assertEqual(len(calc_collection), 3)
         self.assertEqual(expected_list, calc_collection)
 
@@ -55,7 +57,9 @@ class MyFolderCollecorTest(TestCase):
         ]
 
         folders_search = FolderList()
+
         calc_collection = folders_search.folder_collector(lst_two)
+
         self.assertEqual(len(calc_collection), 6)
         self.assertEqual(expected_list, calc_collection)
 
@@ -94,6 +98,8 @@ class MyFolderCollecorTest(TestCase):
             "sub-folder-1.2.1.1",
         ]
         folders_search = FolderList()
+
         calc_collection = folders_search.folder_collector(lst_four)
+
         self.assertEqual(len(calc_collection), 5)
         self.assertEqual(calc_collection, expected_list)

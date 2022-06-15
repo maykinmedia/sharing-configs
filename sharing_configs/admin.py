@@ -1,7 +1,4 @@
-import base64
-
 from django.contrib import admin, messages
-from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.template import Context
@@ -45,6 +42,7 @@ class SharingConfigsExportMixin:
 
     def sharing_configs_export_view(self, request, object_id, extra_context=None):
         """
+        return template with form for GET request;
         process form data from POST request and make API call to endpoint;
         initial expects str representation of an object
         """
@@ -58,8 +56,10 @@ class SharingConfigsExportMixin:
         obj = self.get_object(request, object_id)
         initial = {"file_name": f"{obj}.json"}
         if request.method == "POST":
+
             form = self.get_sharing_configs_export_form(request.POST, initial=initial)
             if form.is_valid():
+
                 author = request.user.username
                 byte_content = self.get_sharing_configs_export_data(obj)
                 str_content_64_encoded = get_str_from_encoded64_object(byte_content)
@@ -87,9 +87,9 @@ class SharingConfigsExportMixin:
                             kwargs={"object_id": obj.id},
                         )
                     )
-                except ApiException as e:
+                except ApiException:
                     msg = format_html(
-                        _(f"Export of object failed: {e}"),
+                        _("Export of object failed"),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 
@@ -112,16 +112,16 @@ class SharingConfigsExportMixin:
         else:
             form = self.sharing_configs_export_form(initial=initial)
 
-        return render(
-            request,
-            self.change_form_export_template,
-            {
-                "object": obj,
-                "form": form,
-                "extra_context": extra_context,
-                "opts": obj._meta,
-            },
-        )
+            return render(
+                request,
+                self.change_form_export_template,
+                {
+                    "object": obj,
+                    "form": form,
+                    "extra_context": extra_context,
+                    "opts": obj._meta,
+                },
+            )
 
     def get_urls(self):
         urls = super().get_urls()
@@ -156,7 +156,6 @@ class SharingConfigsImportMixin:
     def get_sharing_configs_import_data(self, content: bytes) -> object:
         """
         Derived class should override this method converting content in bytes  to a model object;
-
         """
         raise NotImplemented
 
@@ -185,27 +184,33 @@ class SharingConfigsImportMixin:
         extra_context["main_url"] = main_url
         extra_context["ajax_url"] = ajax_url
         if request.method == "POST":
+
             form = self.get_sharing_configs_import_form(request.POST)
             if form.is_valid():
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
-                obj = SharingConfigsClient()
+
+                obj_client = SharingConfigsClient()
                 try:
-                    content = obj.import_data(folder, filename)
+
+                    content = obj_client.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
-                        _(f"The (file) object {obj} has been imported successfully!"),
+                        _("The (file) object {object} has been imported successfully!"),
+                        object=obj,
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)
                     return redirect(reverse(main_url))
 
-                except ApiException as e:
+                except ApiException:
+
                     msg = format_html(
-                        _(f"Import of object failed: {e}"),
+                        _("Import of object failed"),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 
             if not form.is_valid():
+
                 msg = format_html(
                     _("Something went wrong during object import"),
                 )
