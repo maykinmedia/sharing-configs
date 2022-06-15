@@ -11,8 +11,14 @@ import requests_mock
 
 from sharing_configs.client_util import SharingConfigsClient
 from sharing_configs.exceptions import ApiException
+from testapp.models import Configuration, Theme
 
-from .factories import SharingConfigsConfigFactory, StaffUserFactory, SuperUserFactory
+from .factories import (
+    SharingConfigsConfigFactory,
+    StaffUserFactory,
+    SuperUserFactory,
+    ThemeFactory,
+)
 from .mock_data_api.mock_util import get_mock_folders
 
 User = get_user_model()
@@ -24,6 +30,8 @@ class TestImportMixinPatchFuncs(TestCase):
     def setUp(self) -> None:
         self.user = StaffUserFactory()
         self.client.force_login(self.user)
+        self.theme = ThemeFactory()
+        self.configuration = Configuration.objects.create(theme=self.theme)
 
     @patch(
         "sharing_configs.client_util.SharingConfigsClient.get_folders",
@@ -34,7 +42,7 @@ class TestImportMixinPatchFuncs(TestCase):
         On request GET "folder" form field  will be pre-populated
         with mocked API data
         """
-        url = reverse("admin:auth_user_import")
+        url = reverse("admin:testapp_theme_import")
 
         resp = self.client.get(url)
 
@@ -69,7 +77,7 @@ class TestImportMixinPatchFuncs(TestCase):
                 {"filename": "folder_one.html", "download_url": "http://example.com"},
             ],
         }
-        url = reverse("admin:auth_user_ajax") + str("?folder_name=folder_one")
+        url = reverse("admin:testapp_theme_ajax") + str("?folder_name=folder_one")
 
         resp = self.client.get(
             url,
@@ -90,7 +98,7 @@ class TestImportMixinPatchFuncs(TestCase):
     )
     def test_fail_import_form_without_file(self, get_mock_data):
         """if file name not in data, form with error message rendered in a template"""
-        url = reverse("admin:auth_user_import")
+        url = reverse("admin:testapp_theme_import")
         data = {"folder": "folder_one", "file_name": ""}
 
         resp = self.client.post(url, data=data)
@@ -110,17 +118,16 @@ class TestImportMixinPatchFuncs(TestCase):
     )
     @patch(
         "sharing_configs.client_util.SharingConfigsClient.import_data",
-        return_value=b"some-words",
+        return_value=b'{"accent": "#f8f8f8","name": "spring", "primary": "#8d979c", \
+        "primary_fg": "#1a2b3c", "secondary": "#315980"}',
     )
     def test_import_valid_form(self, mock_import, get_mock_data_folders):
-        """if import form is valis -> success response and redirect to the same import url;
+        """if import form is valid -> success response and redirect to the same import url;
         (mock)get_folders method also called by re-direct to supply template dropdown-menu with folders
         """
-        url = reverse("admin:auth_user_import")
+        url = reverse("admin:testapp_theme_import")
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-
         resp = self.client.post(url, data=data)
-
         self.assertEqual(resp.status_code, 302)
         self.assertRedirects(resp, url, status_code=302, target_status_code=200)
         get_mock_data_folders.assert_called_with(None)
@@ -138,6 +145,8 @@ class TestImportMixinRequestsMock(TestCase):
         self.folder = "folder_one"
         self.filename = "test.txt"
         self.url = urljoin(self.config_object.api_endpoint, self.config_object.label)
+        self.theme = ThemeFactory()
+        self.configuration = Configuration.objects.create(theme=self.theme)
 
     @requests_mock.Mocker()
     def test_ok_list_folders_from_form_init(self, mock_get):
@@ -239,14 +248,14 @@ class TestImportMixinRequestsMock(TestCase):
     def test_partial_network_problem_import(self, mock_import_data, mocked_folders):
         """if connection problem occures a generic error message displayed on import template"""
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        url = reverse("admin:auth_user_import")
+        url = reverse("admin:testapp_theme_import")
 
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
 
         self.assertTrue(mock_import_data.called)
         self.assertTrue(mock_import_data.called)
-        self.assertEqual(str(messages[0]), "Import of object failed")
+        self.assertEqual(str(messages[0]), "The import of the selected item failed.")
         self.assertTemplateUsed("admin/import.html")
         mock_import_data.assert_called_once_with(
             url=self.client_api.get_import_url("folder_one", "zoo.txt"),
@@ -268,7 +277,7 @@ class TestImportMixinRequestsMock(TestCase):
         """if connection problem occures not only during import data but also during fetching folders
         a generic error message(error,'no folders_available') displayed on import template"""
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        url = reverse("admin:auth_user_import")
+        url = reverse("admin:testapp_theme_import")
         url_list_folders = self.client_api.get_list_folders_url()
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
 
@@ -277,7 +286,9 @@ class TestImportMixinRequestsMock(TestCase):
 
         self.assertEqual(str(messages[0]), "Something went wrong during object import")
         self.assertTrue(mocked_folders.called)
-        with self.assertRaisesMessage(ApiException, "No folders available"):
+        with self.assertRaisesMessage(
+            ApiException, "Could not retrieve any folders due to a connection error."
+        ):
             self.client_api.get_folders(permission=None)
         mocked_folders.assert_called_with(
             url=url_list_folders,
@@ -294,17 +305,15 @@ class TestImportMixinUI(TestCase):
     def setUp(self) -> None:
         self.user = SuperUserFactory()
         self.client.force_login(self.user)
-        info = (User._meta.app_label, User._meta.model_name)
-        self.url = reverse("admin:%s_%s_changelist" % info)
+        self.theme = ThemeFactory()
+        self.configuration = Configuration.objects.create(theme=self.theme)
+        self.info = (Theme._meta.app_label, Theme._meta.model_name)
+        self.url = reverse("admin:%s_%s_changelist" % self.info)
 
     def test_button_import_presence(self):
         """check if user detail page has a button 'import' with a link to import page"""
-        elem = """<a href="/admin/auth/user/import/" class="addlink ">
-            Import from Community
-        </a>"""
-
+        elem = """<a href="/admin/testapp/theme/import/"""
         resp = self.client.get(self.url)
-
         self.assertTemplateUsed(resp, "sharing_configs/admin/change_list.html")
         self.assertEqual(200, resp.status_code)
         self.assertContains(resp, elem)

@@ -47,7 +47,7 @@ class SharingConfigsClient:
             )
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
-            raise ApiException("Error during export of object")
+            raise ApiException("Could not export the item due to a connection error.")
         return resp.json()
 
     def import_data(self, folder: str, filename: str) -> bytes:
@@ -62,7 +62,7 @@ class SharingConfigsClient:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
 
-            raise ApiException("Error during import of object")
+            raise ApiException("Could not import the item due to a connection error.")
         return resp.content
 
     def get_folders(self, permission: Optional[str]) -> dict:
@@ -82,7 +82,9 @@ class SharingConfigsClient:
                 )
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException("No folders available")
+            raise ApiException(
+                "Could not retrieve any folders due to a connection error."
+            )
 
         return resp.json()
 
@@ -95,5 +97,7 @@ class SharingConfigsClient:
         try:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException("No folders available")
+            raise ApiException(
+                "Could not retrieve any files due to a connection error."
+            )
         return resp.json()

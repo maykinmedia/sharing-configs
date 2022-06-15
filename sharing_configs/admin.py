@@ -1,7 +1,6 @@
 from django.contrib import admin, messages
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.template import Context
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -35,7 +34,8 @@ class SharingConfigsExportMixin:
 
     def get_sharing_configs_export_data(self, obj: object) -> bytes:
         """
-        Derived class should override this method for export converting model object into bytes
+        The developer should override this method for export converting model object into bytes
+        that will be futher base64 encoded before sent to the API
 
         """
         raise NotImplemented
@@ -72,10 +72,9 @@ class SharingConfigsExportMixin:
                     "filename": filename,
                 }
 
-                obj_client = SharingConfigsClient()
+                client = SharingConfigsClient()
                 try:
-                    resp = obj_client.export(folder, data)
-                    # TODO: what to do with resp at this point
+                    resp = client.export(folder, data)
                     msg = format_html(
                         _("The object {object} has been exported successfully"),
                         object=obj,
@@ -155,7 +154,8 @@ class SharingConfigsImportMixin:
 
     def get_sharing_configs_import_data(self, content: bytes) -> object:
         """
-        Derived class should override this method converting content in bytes  to a model object;
+        The developer should override this method decoding bytes and
+        creating or updating an model object from the content data.
         """
         raise NotImplemented
 
@@ -184,19 +184,17 @@ class SharingConfigsImportMixin:
         extra_context["main_url"] = main_url
         extra_context["ajax_url"] = ajax_url
         if request.method == "POST":
-
             form = self.get_sharing_configs_import_form(request.POST)
             if form.is_valid():
+
                 folder = form.cleaned_data.get("folder")
                 filename = form.cleaned_data.get("file_name")
-
-                obj_client = SharingConfigsClient()
+                client = SharingConfigsClient()
                 try:
-
-                    content = obj_client.import_data(folder, filename)
+                    content = client.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
-                        _("The (file) object {object} has been imported successfully!"),
+                        _("The item {object} has been imported successfully!"),
                         object=obj,
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)
@@ -205,7 +203,7 @@ class SharingConfigsImportMixin:
                 except ApiException:
 
                     msg = format_html(
-                        _("Import of object failed"),
+                        _("The import of the selected item failed."),
                     )
                     self.message_user(request, msg, level=messages.ERROR)
 

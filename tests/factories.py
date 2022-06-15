@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 import factory
 
 from sharing_configs.models import SharingConfigsConfig
+from testapp.models import Theme
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -28,3 +29,14 @@ class SharingConfigsConfigFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = SharingConfigsConfig
+
+
+class ThemeFactory(factory.django.DjangoModelFactory):
+    name = factory.Faker("word")
+    primary = factory.Faker("word")
+    secondary = factory.Faker("word")
+    accent = factory.Faker("word")
+    primary_fg = factory.Faker("word")
+
+    class Meta:
+        model = Theme
