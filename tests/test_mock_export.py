@@ -269,7 +269,6 @@ class TestExportMixinPatch(TestCase):
 
         file_field = form.fields["file_name"]
         err_msg = file_field.error_messages.get("required", None)
-        print("err ", err_msg)
 
         self.assertEqual(len(folder_field.choices), 4)
         self.assertEqual(folder_field.choices[0], (None, "Choose a folder"))
