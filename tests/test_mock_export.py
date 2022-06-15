@@ -249,7 +249,9 @@ class TestExportMixinPatch(TestCase):
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
 
-        self.assertEqual(str(messages[0]), f"The object {self.theme} has been not exported")
+        self.assertEqual(
+            str(messages[0]), f"The object {self.theme} has been not exported"
+        )
         self.assertTrue(mocked_folders.called)
         with self.assertRaisesMessage(
             ApiException, "Could not retrieve any folders due to a connection error."

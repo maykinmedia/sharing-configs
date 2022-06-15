@@ -72,9 +72,9 @@ class SharingConfigsExportMixin:
                     "filename": filename,
                 }
 
-                obj_client = SharingConfigsClient()
+                client = SharingConfigsClient()
                 try:
-                    resp = obj_client.export(folder, data)
+                    resp = client.export(folder, data)
                     msg = format_html(
                         _("The object {object} has been exported successfully"),
                         object=obj,
@@ -194,7 +194,7 @@ class SharingConfigsImportMixin:
                     content = client.import_data(folder, filename)
                     obj = self.get_sharing_configs_import_data(content)
                     msg = format_html(
-                        _("The item object {object} has been imported successfully!"),
+                        _("The item {object} has been imported successfully!"),
                         object=obj,
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)

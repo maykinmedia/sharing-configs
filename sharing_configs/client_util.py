@@ -42,7 +42,9 @@ class SharingConfigsClient:
         """
 
         try:
-            resp = requests.post(url=self.get_export_url(folder), headers=self.headers, json=data)
+            resp = requests.post(
+                url=self.get_export_url(folder), headers=self.headers, json=data
+            )
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
             raise ApiException("Could not export the item due to a connection error.")
@@ -53,7 +55,9 @@ class SharingConfigsClient:
 
         try:
 
-            resp = requests.get(url=self.get_import_url(folder, filename), headers=self.headers)
+            resp = requests.get(
+                url=self.get_import_url(folder, filename), headers=self.headers
+            )
 
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as e:
@@ -73,10 +77,14 @@ class SharingConfigsClient:
                     params=permission,
                 )
             else:
-                resp = requests.get(url=self.get_list_folders_url(), headers=self.headers)
+                resp = requests.get(
+                    url=self.get_list_folders_url(), headers=self.headers
+                )
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException("Could not retrieve any folders due to a connection error.")
+            raise ApiException(
+                "Could not retrieve any folders due to a connection error."
+            )
 
         return resp.json()
 
@@ -89,5 +97,7 @@ class SharingConfigsClient:
         try:
             resp.raise_for_status()
         except (requests.exceptions.HTTPError, requests.ConnectionError) as exc:
-            raise ApiException("Could not retrieve any files due to a connection error.")
+            raise ApiException(
+                "Could not retrieve any files due to a connection error."
+            )
         return resp.json()

@@ -186,6 +186,7 @@ Create a ``context_processors.py`` file, to pass the currently configured theme 
 Finally, pass the theme context variables to an overriden ``base_site.html`` in the templates folder.
 
 .. code-block::
+    
   {% extends "admin/base_site.html" %}
     {% block extrastyle %}
     <html
