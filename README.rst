@@ -2,7 +2,7 @@
 Sharing Configs for Django
 =================================================
 
-:Version: 0.1.1
+:Version: 0.1.2
 :Source: https://github.com/maykinmedia/sharing-configs
 :Keywords: ``django``, ``github``
 :PythonVersion: 3.7, 3.8, 3.9
