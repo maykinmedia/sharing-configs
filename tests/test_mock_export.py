@@ -165,7 +165,7 @@ class TestExportMixinPatch(TestCase):
                 "content-type": "application/json",
                 "authorization": f"Token {self.config_object.api_key}",
             },
-            params="write",
+            params={"permission": "write"},
         )
 
     @patch(
@@ -263,7 +263,7 @@ class TestExportMixinPatch(TestCase):
                 "content-type": "application/json",
                 "authorization": f"Token {self.config_object.api_key}",
             },
-            params="write",
+            params={"permission": "write"},
         )
         self.assertTrue(resp.status_code, 200)
 

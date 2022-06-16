@@ -74,7 +74,7 @@ class SharingConfigsClient:
                 resp = requests.get(
                     url=self.get_list_folders_url(),
                     headers=self.headers,
-                    params=permission,
+                    params={"permission": permission},
                 )
             else:
                 resp = requests.get(
