@@ -4,18 +4,13 @@ from django.contrib import admin
 from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404
 
-from sharing_configs.admin import SharingConfigsExportMixin, SharingConfigsImportMixin
-from sharing_configs.forms import ExportToForm, ImportForm
+from solo.admin import SingletonModelAdmin
+
+from sharing_configs.admin import SharingConfigsMixin
 from testapp.models import Configuration, Theme
 
 
-class ThemeAdmin(
-    SharingConfigsExportMixin, SharingConfigsImportMixin, admin.ModelAdmin
-):
-
-    sharing_configs_export_form = ExportToForm
-    sharing_configs_import_form = ImportForm
-
+class ThemeAdmin(SharingConfigsMixin, admin.ModelAdmin):
     def get_sharing_configs_export_data(self, obj: object) -> bytes:
         """convert the theme to JSON."""
         theme = get_object_or_404(Theme, id=obj.id)
@@ -35,4 +30,4 @@ class ThemeAdmin(
 
 
 admin.site.register(Theme, ThemeAdmin)
-admin.site.register(Configuration)
+admin.site.register(Configuration, SingletonModelAdmin)

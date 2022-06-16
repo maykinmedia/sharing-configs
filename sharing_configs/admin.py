@@ -264,3 +264,7 @@ class SharingConfigsImportMixin:
         if self.sharing_configs_import_form is not None:
             form = self.sharing_configs_import_form(*args, **kwargs)
             return form
+
+
+class SharingConfigsMixin(SharingConfigsImportMixin, SharingConfigsExportMixin):
+    pass
