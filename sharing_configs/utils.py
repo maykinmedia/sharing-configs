@@ -9,17 +9,18 @@ def get_imported_folders_choices(permission: Optional[str]) -> list:
     create list of tuples (folders name) based on api response
     ex:[('folder_one', 'folder_one'), ('folder_two', 'folder_two')]
     """
-    folders_choices = []
-    obj = SharingConfigsClient()
-    api_dict = obj.get_folders(permission)
+    client = SharingConfigsClient()
+
+    api_dict = client.get_folders(permission)
     results_list = api_dict.get("results", "No results in your dict")
+
+    folders_choices = []
     if results_list is not None:
         lst = FolderList()
         all_folders = lst.folder_collector(results_list)
         for folder in all_folders:
             folders_choices.append((folder, folder))
-    else:
-        folders_choices = []
+
     return folders_choices
 
 
@@ -28,13 +29,16 @@ def get_imported_files_choices(folder: str) -> list:
     create list of filenames based on api response and to be passed to js
 
     """
-    obj = SharingConfigsClient()
-    api_dict = obj.get_files(folder)
+    client = SharingConfigsClient()
+
+    api_dict = client.get_files(folder)
     results_list = api_dict.get("results", None)
+
     file_choices = []
     if results_list is not None:
         for item in results_list:
             file_choices.append(item.get("filename"))
+
     return file_choices
 
 

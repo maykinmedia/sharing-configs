@@ -1,8 +1,14 @@
 {% extends "admin/base_site.html" %}
-{% load i18n static %}
 
 {% block extrastyle %}
-<html style=" --primary:{{primary}}; --secondary:{{secondary}}; --accent:{{accent}}; --primary_fg:{{primary_fg}};">
-
-</html>
+    {% if theme %}
+        <style type="text/css">
+            :root {
+                --primary: {{ theme.primary }};
+                --secondary:{{ theme.secondary }};
+                --accent:{{ theme.accent }};
+                --primary_fg:{{ theme.primary_fg }};
+            }
+        </style>
+    {% endif %}
 {% endblock %}
