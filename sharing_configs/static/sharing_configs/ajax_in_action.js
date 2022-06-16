@@ -11,7 +11,7 @@ function buildHeader() {
 const AJAX_SELECT = document.getElementById('id_folder')
 
 let filesListMenu = document.getElementById("id_file_name")
-filesListMenu.innerHTML = '<option value="">files in folder</option>';
+filesListMenu.innerHTML = '<option value="">Files in folder</option>';
 
 // error generation
 let firstDivFormRow = document.getElementsByClassName("form-row")[0]
@@ -78,7 +78,7 @@ class TrackFolderMenu {
     populateList(data) {
         if (data.status_code === 200) {
             // reset drop-down menu for list of files  
-            filesListMenu.innerHTML = '<option value="">files in folder</option>';
+            filesListMenu.innerHTML = '<option value="">Files in folder</option>';
             data.resp.forEach((item) => {
                 filesListMenu.innerHTML += `<option value="${item}">${item}</option>`
             })

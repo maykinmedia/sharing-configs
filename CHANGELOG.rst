@@ -5,7 +5,7 @@ Change history
 0.1.1 (2022-05-24)
 ==================
 
-* fix various bugs (#50)
+* Fix various bugs (#50)
 
 
 0.1.0 (2022-05-13)
