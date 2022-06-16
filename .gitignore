@@ -55,6 +55,8 @@ coverage.xml
 *.log
 local_settings.py
 db.sqlite3
+manage.py
+sharing_configs.db
 
 # Flask stuff:
 instance/
@@ -105,11 +107,3 @@ venv.bak/
 
 # Editor directories and files
 .vscode
-
-# My own files/folders
-
-mock_error.py
-mock_data
-manage.py
-
-sharing_configs.db
