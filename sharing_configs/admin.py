@@ -60,7 +60,7 @@ class SharingConfigsExportMixin:
             form = self.get_sharing_configs_export_form(request.POST, initial=initial)
             if form.is_valid():
 
-                author = request.user.username
+                author = str(request.user)
                 byte_content = self.get_sharing_configs_export_data(obj)
                 str_content_64_encoded = get_str_from_encoded64_object(byte_content)
                 filename = form.cleaned_data.get("file_name")
