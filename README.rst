@@ -33,7 +33,8 @@ Installation
     pip install sharing-configs
 
 2. Add ``sharing_configs`` to the ``INSTALLED_APPS`` setting.
-3. In the admin page of ``SharingConfigsConfig`` configure access to the 
+3. Run ``manage.py migrate`` to create the database tables for sharing-configs
+4. In the admin page of ``SharingConfigsConfig`` configure access to the 
    Sharing Configs API
 
 
