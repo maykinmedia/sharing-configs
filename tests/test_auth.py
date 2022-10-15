@@ -13,7 +13,7 @@ class TestExportMixinNotAuthUser(TestCase):
         self.theme = ThemeFactory()
         self.configuration = Configuration.objects.create(theme=self.theme)
         self.url = reverse(
-            "admin:testapp_theme_export", kwargs={"object_id": self.theme.id}
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
         )
 
     def test_export_mixin_render_login_template(self):
@@ -22,7 +22,7 @@ class TestExportMixinNotAuthUser(TestCase):
         next_url, status_code = resp.redirect_chain[-1]
 
         self.assertEqual(
-            next_url, f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/export/"
+            next_url, f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/sc_export/"
         )
         self.assertEqual(302, status_code)
 
@@ -35,7 +35,7 @@ class TestExportMixinAuthUserNotStaff(TestCase):
         self.configuration = Configuration.objects.create(theme=self.theme)
         self.user = UserFactory()
         self.url = reverse(
-            "admin:testapp_theme_export", kwargs={"object_id": self.theme.id}
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
         )
         self.client.force_login(self.user)
 
@@ -44,7 +44,7 @@ class TestExportMixinAuthUserNotStaff(TestCase):
 
         self.assertEqual(
             resp.redirect_chain,
-            [(f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/export/", 302)],
+            [(f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/sc_export/", 302)],
         )
 
 
@@ -55,14 +55,14 @@ class TestImportMixinNotAuthStaffUser(TestCase):
         self.user = StaffUserFactory()
         self.theme = ThemeFactory()
         self.configuration = Configuration.objects.create(theme=self.theme)
-        self.url = reverse("admin:testapp_theme_import")
+        self.url = reverse("admin:testapp_theme_sc_import")
 
     def test_get_request_import_mixin(self):
         resp = self.client.get(self.url, follow=True)
 
         self.assertEqual(
             resp.redirect_chain,
-            [("/admin/login/?next=/admin/testapp/theme/import/", 302)],
+            [("/admin/login/?next=/admin/testapp/theme/sc_import/", 302)],
         )
 
 
@@ -74,12 +74,12 @@ class TestImportMixinAuthUserNotStaff(TestCase):
         self.theme = ThemeFactory()
         self.configuration = Configuration.objects.create(theme=self.theme)
         self.client.force_login(self.user)
-        self.url = reverse("admin:testapp_theme_import")
+        self.url = reverse("admin:testapp_theme_sc_import")
 
     def test_get_request_import_mixin(self):
         resp = self.client.get(self.url, follow=True)
 
         self.assertEqual(
             resp.redirect_chain,
-            [("/admin/login/?next=/admin/testapp/theme/import/", 302)],
+            [("/admin/login/?next=/admin/testapp/theme/sc_import/", 302)],
         )
