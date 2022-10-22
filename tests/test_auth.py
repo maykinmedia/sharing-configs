@@ -22,7 +22,8 @@ class TestExportMixinNotAuthUser(TestCase):
         next_url, status_code = resp.redirect_chain[-1]
 
         self.assertEqual(
-            next_url, f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/sc_export/"
+            next_url,
+            f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/sc_export/",
         )
         self.assertEqual(302, status_code)
 
@@ -44,7 +45,12 @@ class TestExportMixinAuthUserNotStaff(TestCase):
 
         self.assertEqual(
             resp.redirect_chain,
-            [(f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/sc_export/", 302)],
+            [
+                (
+                    f"/admin/login/?next=/admin/testapp/theme/{self.theme.id}/sc_export/",
+                    302,
+                )
+            ],
         )
 
 

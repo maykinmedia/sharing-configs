@@ -97,7 +97,9 @@ class TestExportMixinPatch(TestCase):
             "download_url": "http://example.com",
             "filename": "string",
         }
-        url = reverse("admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id})
+        url = reverse(
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
+        )
         theme_dict = model_to_dict(self.theme)
         theme_dict.pop("id")
         dump_json_theme = json.dumps(theme_dict, sort_keys=True, default=str)
@@ -136,7 +138,9 @@ class TestExportMixinPatch(TestCase):
         On request GET  export form filename field  should be pre-populated
         with initial data == string representaion of an object
         """
-        url = reverse("admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id})
+        url = reverse(
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
+        )
         initial_for_filename = {"file_name": f"{self.theme}.json"}
 
         resp = self.client.get(url)
@@ -174,7 +178,9 @@ class TestExportMixinPatch(TestCase):
     )
     def test_fail_export_form_without_file(self, get_mock_data):
         """if file name not in data, form with error message rendered in a template"""
-        url = reverse("admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id})
+        url = reverse(
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
+        )
         data = {"folder": "folder_one", "file_name": ""}
 
         resp = self.client.post(url, data=data)
@@ -199,7 +205,9 @@ class TestExportMixinPatch(TestCase):
         """if connection problem occures a generic error message displayed on export template"""
 
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        url = reverse("admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id})
+        url = reverse(
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
+        )
         # prepare object for export
         theme_dict = model_to_dict(self.theme)
         theme_dict.pop("id")
@@ -243,7 +251,9 @@ class TestExportMixinPatch(TestCase):
         """if connection problem occures not only during export data but also during fetching folders a generic error message displayed on export template"""
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
         url_list_folders = self.client_api.get_list_folders_url()
-        url = reverse("admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id})
+        url = reverse(
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
+        )
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
 
         resp = self.client.post(url, data=data)
@@ -273,7 +283,9 @@ class TestExportMixinPatch(TestCase):
     )
     def test_expected_choices_export_form(self, get_mock_data):
         """on request GET export form should provide expected list of folders in its dropdown menu"""
-        url = reverse("admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id})
+        url = reverse(
+            "admin:testapp_theme_sc_export", kwargs={"object_id": self.theme.id}
+        )
         data = {"folder": "folder_one", "file_name": ""}
 
         resp = self.client.post(url, data=data)
