@@ -58,7 +58,6 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context["form"].is_bound, False)
         self.assertEqual(3, len(form_folder_field))
-        self.assertEqual(0, len(form_file_name_field))
         self.assertEqual(top_select_dropdown_value, "")
         self.assertEqual(first_folder_name, "folder_one")
         self.assertEqual(second_folder_name, "folder_two")
@@ -122,16 +121,15 @@ class TestImportMixinPatchFuncs(TestCase):
         "primary_fg": "#1a2b3c", "secondary": "#315980"}',
     )
     def test_import_valid_form(self, mock_import, get_mock_data_folders):
-        """if import form is valid -> success response and redirect to the same import url;
-        (mock)get_folders method also called by re-direct to supply template dropdown-menu with folders
-        """
+        """if import form is valid -> success response and response contains redirect-url to the resulting object;"""
         url = reverse("admin:testapp_theme_sc_import")
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
         resp = self.client.post(url, data=data)
-        self.assertEqual(resp.status_code, 302)
-        self.assertRedirects(resp, url, status_code=302, target_status_code=200)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"redirect": "/admin/testapp/theme/2/change/"})
+
         get_mock_data_folders.assert_called_with(None)
-        self.assertEqual(get_mock_data_folders.call_count, 2)
+        self.assertEqual(get_mock_data_folders.call_count, 1)
 
 
 class TestImportMixinRequestsMock(TestCase):

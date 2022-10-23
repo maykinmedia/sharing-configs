@@ -13,7 +13,11 @@ from sharing_configs.models import SharingConfigsConfig
 
 from .exceptions import ApiException
 from .forms import ExportToForm, ImportForm
-from .utils import get_imported_files_choices, get_str_from_encoded64_object
+from .utils import (
+    get_folders,
+    get_imported_files_choices,
+    get_str_from_encoded64_object,
+)
 
 
 @admin.register(SharingConfigsConfig)
@@ -159,6 +163,9 @@ class SharingConfigsImportMixin:
         """
         raise NotImplemented
 
+    def get_ajax_fetch_folders(self, request, *args, **kwargs):
+        return JsonResponse({"folders": get_folders(None)})
+
     def get_ajax_fetch_files(self, request, *args, **kwargs):
         """ajax call to pass chosen folder to a view"""
         folder = request.GET.get("folder_name")
@@ -198,7 +205,11 @@ class SharingConfigsImportMixin:
                         object=obj,
                     )
                     self.message_user(request, msg, level=messages.SUCCESS)
-                    return redirect(reverse(main_url))
+                    obj_admin_url = reverse(
+                        f"admin:{obj._meta.app_label}_{obj._meta.model_name}_change",
+                        args=[obj.pk],
+                    )
+                    return JsonResponse({"redirect": obj_admin_url})
 
                 except ApiException:
 
@@ -246,9 +257,14 @@ class SharingConfigsImportMixin:
 
         add_urls = [
             path(
-                "sc_fetch/files/",
+                "sc_import/files/",
                 self.admin_site.admin_view(self.get_ajax_fetch_files),
                 name=f"{info[0]}_{info[1]}_sc_ajax",
+            ),
+            path(
+                "sc_import/folders/",
+                self.admin_site.admin_view(self.get_ajax_fetch_folders),
+                name=f"{info[0]}_{info[1]}_sc_ajax_folders",
             ),
             path(
                 "sc_import/",

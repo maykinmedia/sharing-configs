@@ -2,14 +2,16 @@
 {% load i18n admin_urls static %}
 
 {% block content %}
-    <h1>{% trans 'Import from Community' %}</h1>
+<h1>{% trans 'Import from Community' %}</h1>
 
-    <form id="import-form" action="{% url extra_context.main_url %}" data-action="{% url extra_context.ajax_url %}"
+<div id="app"></div>
+
+    <form style='display: none;' id="import-form" action="{% url extra_context.main_url %}"
         method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <fieldset class="module aligned">
             {% for field in form %}
-                <div class="form-row">
+               <div class="form-row">
                     {{ field.errors }}
                     <label class="{% if field.field.required %}required{% endif %}">{{ field.label|capfirst }}:</label>
                     {{ field }}
@@ -24,16 +26,14 @@
                 value="{% trans 'Import' %}">
         </div>
     </form>
-    </div>
-    <br />
+
+
 {% endblock %}
 
 {% block extrahead %}
     {{ block.super }}
-
     <script src="{% url 'admin:jsi18n' %}"></script>
-    <script src="{% static 'admin/js/vendor/jquery/jquery.min.js' %}" defer type="text/javascript" charset="utf-8"></script>
-    <script src="{% static 'admin/js/jquery.init.js' %} " defer type="text/javascript" charset="utf-8"></script>
-    <script src="{% static 'sharing_configs/jquery_in_action.js'%}" defer type="text/javascript"></script>
-    <script src="{% static 'sharing_configs/ajax_in_action.js' %}" type="text/javascript" defer></script>
+    <link rel="stylesheet" href="{% static 'sharing_configs/bootstrap/bootstrap-5.2.2.min.css'%}" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <script src="{% static 'sharing_configs/bootstrap/bootstrap.bundle-5.2.2.min.js'%}" defer type="text/javascript"></script>
+    <script src="{% static 'sharing_configs/import_ui_app.js' %}" defer type="text/javascript"></script>
 {% endblock %}
