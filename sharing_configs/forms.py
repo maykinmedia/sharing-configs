@@ -37,7 +37,6 @@ class ImportForm(FolderForm):
 
     file_name = forms.CharField(
         label=_("File name"),
-        widget=forms.Select,
         required=True,
         help_text=_("Select one of the available files from the community."),
     )

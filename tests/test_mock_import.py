@@ -42,7 +42,7 @@ class TestImportMixinPatchFuncs(TestCase):
         On request GET "folder" form field  will be pre-populated
         with mocked API data
         """
-        url = reverse("admin:testapp_theme_import")
+        url = reverse("admin:testapp_theme_sc_import")
 
         resp = self.client.get(url)
 
@@ -58,7 +58,6 @@ class TestImportMixinPatchFuncs(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context["form"].is_bound, False)
         self.assertEqual(3, len(form_folder_field))
-        self.assertEqual(0, len(form_file_name_field))
         self.assertEqual(top_select_dropdown_value, "")
         self.assertEqual(first_folder_name, "folder_one")
         self.assertEqual(second_folder_name, "folder_two")
@@ -77,7 +76,7 @@ class TestImportMixinPatchFuncs(TestCase):
                 {"filename": "folder_one.html", "download_url": "http://example.com"},
             ],
         }
-        url = reverse("admin:testapp_theme_ajax") + str("?folder_name=folder_one")
+        url = reverse("admin:testapp_theme_sc_ajax") + str("?folder_name=folder_one")
 
         resp = self.client.get(
             url,
@@ -98,7 +97,7 @@ class TestImportMixinPatchFuncs(TestCase):
     )
     def test_fail_import_form_without_file(self, get_mock_data):
         """if file name not in data, form with error message rendered in a template"""
-        url = reverse("admin:testapp_theme_import")
+        url = reverse("admin:testapp_theme_sc_import")
         data = {"folder": "folder_one", "file_name": ""}
 
         resp = self.client.post(url, data=data)
@@ -122,16 +121,15 @@ class TestImportMixinPatchFuncs(TestCase):
         "primary_fg": "#1a2b3c", "secondary": "#315980"}',
     )
     def test_import_valid_form(self, mock_import, get_mock_data_folders):
-        """if import form is valid -> success response and redirect to the same import url;
-        (mock)get_folders method also called by re-direct to supply template dropdown-menu with folders
-        """
-        url = reverse("admin:testapp_theme_import")
+        """if import form is valid -> success response and response contains redirect-url to the resulting object;"""
+        url = reverse("admin:testapp_theme_sc_import")
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
         resp = self.client.post(url, data=data)
-        self.assertEqual(resp.status_code, 302)
-        self.assertRedirects(resp, url, status_code=302, target_status_code=200)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"redirect": "/admin/testapp/theme/2/change/"})
+
         get_mock_data_folders.assert_called_with(None)
-        self.assertEqual(get_mock_data_folders.call_count, 2)
+        self.assertEqual(get_mock_data_folders.call_count, 1)
 
 
 class TestImportMixinRequestsMock(TestCase):
@@ -248,7 +246,7 @@ class TestImportMixinRequestsMock(TestCase):
     def test_partial_network_problem_import(self, mock_import_data, mocked_folders):
         """if connection problem occures a generic error message displayed on import template"""
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        url = reverse("admin:testapp_theme_import")
+        url = reverse("admin:testapp_theme_sc_import")
 
         resp = self.client.post(url, data=data)
         messages = list(resp.context["messages"])
@@ -277,7 +275,7 @@ class TestImportMixinRequestsMock(TestCase):
         """if connection problem occures not only during import data but also during fetching folders
         a generic error message(error,'no folders_available') displayed on import template"""
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
-        url = reverse("admin:testapp_theme_import")
+        url = reverse("admin:testapp_theme_sc_import")
         url_list_folders = self.client_api.get_list_folders_url()
         data = {"folder": "folder_one", "file_name": "zoo.txt"}
 
@@ -312,7 +310,7 @@ class TestImportMixinUI(TestCase):
 
     def test_button_import_presence(self):
         """check if user detail page has a button 'import' with a link to import page"""
-        elem = """<a href="/admin/testapp/theme/import/"""
+        elem = """<a href="/admin/testapp/theme/sc_import/"""
         resp = self.client.get(self.url)
         self.assertTemplateUsed(resp, "sharing_configs/admin/change_list.html")
         self.assertEqual(200, resp.status_code)

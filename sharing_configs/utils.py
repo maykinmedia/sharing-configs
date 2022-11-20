@@ -13,7 +13,6 @@ def get_imported_folders_choices(permission: Optional[str]) -> list:
 
     api_dict = client.get_folders(permission)
     results_list = api_dict.get("results", "No results in your dict")
-
     folders_choices = []
     if results_list is not None:
         lst = FolderList()
@@ -22,6 +21,19 @@ def get_imported_folders_choices(permission: Optional[str]) -> list:
             folders_choices.append((folder, folder))
 
     return folders_choices
+
+
+def get_folders(permission: Optional[str]) -> list:
+    """
+        results:
+    [{'name': 'community-producten', 'children': [], 'permission': 'write'},
+    {'name': 'voorbeeld-producten', 'children': [], 'permission': 'read'}]
+    """
+    client = SharingConfigsClient()
+
+    api_dict = client.get_folders(permission)
+    results = api_dict.get("results", "No results in your dict")
+    return results
 
 
 def get_imported_files_choices(folder: str) -> list:
