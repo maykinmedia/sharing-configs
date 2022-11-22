@@ -50,7 +50,7 @@ class SharingConfigsExportMixin:
             self.model._meta.app_label,
             self.model._meta.model_name,
         )
-        main_url = f"admin:{info[0]}_{info[1]}_export"
+        main_url = f"admin:{info[0]}_{info[1]}_sc_export"
         extra_context = extra_context or {}
         extra_context["main_url"] = main_url
         obj = self.get_object(request, object_id)
@@ -130,9 +130,9 @@ class SharingConfigsExportMixin:
         )
         add_urls = [
             path(
-                "<path:object_id>/export/",
+                "<path:object_id>/sc_export/",
                 self.admin_site.admin_view(self.sharing_configs_export_view),
-                name=f"{info[0]}_{info[1]}_export",
+                name=f"{info[0]}_{info[1]}_sc_export",
             ),
         ]
 
@@ -178,8 +178,8 @@ class SharingConfigsImportMixin:
             self.model._meta.app_label,
             self.model._meta.model_name,
         )
-        main_url = f"admin:{info[0]}_{info[1]}_import"
-        ajax_url = f"admin:{info[0]}_{info[1]}_ajax"
+        main_url = f"admin:{info[0]}_{info[1]}_sc_import"
+        ajax_url = f"admin:{info[0]}_{info[1]}_sc_ajax"
         extra_context = extra_context or {}
         extra_context["main_url"] = main_url
         extra_context["ajax_url"] = ajax_url
@@ -246,14 +246,14 @@ class SharingConfigsImportMixin:
 
         add_urls = [
             path(
-                "fetch/files/",
+                "sc_fetch/files/",
                 self.admin_site.admin_view(self.get_ajax_fetch_files),
-                name=f"{info[0]}_{info[1]}_ajax",
+                name=f"{info[0]}_{info[1]}_sc_ajax",
             ),
             path(
-                "import/",
+                "sc_import/",
                 self.admin_site.admin_view(self.import_from_view),
-                name=f"{info[0]}_{info[1]}_import",
+                name=f"{info[0]}_{info[1]}_sc_import",
             ),
         ]
 

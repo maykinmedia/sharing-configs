@@ -4,7 +4,7 @@
 
 {% block object-tools-items %}
 <li>  
-  <a href="{% url opts|admin_urlname:'export' original.pk  %}" class="historylink">{% trans "Export to Community" %}</a>
+  <a href="{% url opts|admin_urlname:'sc_export' original.pk  %}" class="historylink">{% trans "Export to Community" %}</a>
 </li>
   
 {% endblock %}
